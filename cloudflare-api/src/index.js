@@ -38,11 +38,55 @@ function clean(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
 }
 
-function authorized(request, env) {
+function base64Url(value) {
+  return btoa(String.fromCharCode(...new Uint8Array(value)))
+    .replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
+}
+
+function fromBase64Url(value) {
+  const normalized = value.replaceAll('-', '+').replaceAll('_', '/');
+  const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4);
+  return Uint8Array.from(atob(padded), char => char.charCodeAt(0));
+}
+
+function bytes(value) {
+  return new TextEncoder().encode(value);
+}
+
+async function signature(value, env) {
+  const key = await crypto.subtle.importKey('raw', bytes(env.HR_API_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
+  return new Uint8Array(await crypto.subtle.sign('HMAC', key, bytes(value)));
+}
+
+async function createFileToken(id, env) {
+  const payload = base64Url(bytes(JSON.stringify({ id, exp: Date.now() + 10 * 60 * 1000 })));
+  const signed = `${payload}.${base64Url(await signature(payload, env))}`;
+  return signed;
+}
+
+async function validFileToken(request, env, id) {
+  const token = new URL(request.url).searchParams.get('access_token') || '';
+  const [payload, encodedSignature] = token.split('.');
+  if (!payload || !encodedSignature) return false;
+  const expected = await signature(payload, env);
+  const actual = fromBase64Url(encodedSignature);
+  if (actual.length !== expected.length) return false;
+  let valid = true;
+  for (let index = 0; index < expected.length; index++) valid = valid && actual[index] === expected[index];
+  if (!valid) return false;
+  try {
+    const decoded = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+    return decoded.id === id && decoded.exp > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+async function authorized(request, env, fileId = '') {
   const session = cookies(request).starkson_hr_session;
   const sessionValid = session && sessions.has(session) && sessions.get(session) > Date.now();
   const apiKey = request.headers.get('Authorization')?.replace(/^Bearer /, '') || '';
-  return sessionValid || (apiKey && apiKey === env.HR_API_KEY);
+  return sessionValid || (apiKey && apiKey === env.HR_API_KEY) || (fileId && await validFileToken(request, env, fileId));
 }
 
 function parseEmployeeName(fileName) {
@@ -122,25 +166,27 @@ export default {
         if (token) sessions.delete(token);
         return json({ authenticated: false }, 200, { ...headers, 'Set-Cookie': 'starkson_hr_session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0' });
       }
-      if (!authorized(request, env)) return json({ error: 'HR authorization required' }, 401, headers);
-
       if (url.pathname === '/api/201-files' && request.method === 'GET') {
+        if (!await authorized(request, env)) return json({ error: 'HR authorization required' }, 401, headers);
         const folder = await getFolder(env);
         const apiOrigin = url.origin;
-        const records = folder.children.filter(item => item.directory !== true).map(file => {
+        const records = await Promise.all(folder.children.filter(item => item.directory !== true).map(async file => {
           const id = file.nodeId || file.name;
-          return { ...parseEmployeeName(file.name), dateHired: '', directLink: `${apiOrigin}/api/201-files/${encodeURIComponent(id)}` };
-        });
+          const token = await createFileToken(id, env);
+          return { ...parseEmployeeName(file.name), dateHired: '', directLink: `${apiOrigin}/api/201-files/${encodeURIComponent(id)}?access_token=${encodeURIComponent(token)}` };
+        }));
         return json(records, 200, headers);
       }
 
       const match = url.pathname.match(/^\/api\/201-files\/([^/]+)$/);
       if (match && request.method === 'GET') {
+        if (!await authorized(request, env, decodeURIComponent(match[1]))) return json({ error: 'HR authorization required' }, 401, headers);
         const file = await getFile(env, decodeURIComponent(match[1]));
         if (!file) return json({ error: 'File not found or directory has not been refreshed' }, 404, headers);
         const data = await download(file);
         return new Response(data, { status: 200, headers: { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${file.name.replaceAll('"', '')}"` } });
       }
+      if (!await authorized(request, env)) return json({ error: 'HR authorization required' }, 401, headers);
       return json({ error: 'Not found' }, 404, headers);
     } catch (error) {
       return json({ error: error.message || 'Internal server error' }, 503, headers);
