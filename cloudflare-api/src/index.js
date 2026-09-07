@@ -1,6 +1,5 @@
 import { Storage } from 'megajs';
 
-const sessions = new Map();
 let storagePromise;
 
 function origin(env) {
@@ -64,6 +63,11 @@ async function createFileToken(id, env) {
   return signed;
 }
 
+async function createSessionToken(env) {
+  const payload = base64Url(bytes(JSON.stringify({ type: 'session', exp: Date.now() + 8 * 60 * 60 * 1000 })));
+  return `${payload}.${base64Url(await signature(payload, env))}`;
+}
+
 async function validFileToken(request, env, id) {
   const token = new URL(request.url).searchParams.get('access_token') || '';
   const [payload, encodedSignature] = token.split('.');
@@ -82,9 +86,26 @@ async function validFileToken(request, env, id) {
   }
 }
 
+async function validSessionToken(token, env) {
+  const [payload, encodedSignature] = String(token || '').split('.');
+  if (!payload || !encodedSignature) return false;
+  const expected = await signature(payload, env);
+  const actual = fromBase64Url(encodedSignature);
+  if (actual.length !== expected.length) return false;
+  let valid = true;
+  for (let index = 0; index < expected.length; index++) valid = valid && actual[index] === expected[index];
+  if (!valid) return false;
+  try {
+    const decoded = JSON.parse(new TextDecoder().decode(fromBase64Url(payload)));
+    return decoded.type === 'session' && decoded.exp > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 async function authorized(request, env, fileId = '') {
   const session = cookies(request).starkson_hr_session;
-  const sessionValid = session && sessions.has(session) && sessions.get(session) > Date.now();
+  const sessionValid = await validSessionToken(session, env);
   const apiKey = request.headers.get('Authorization')?.replace(/^Bearer /, '') || '';
   return sessionValid || (apiKey && apiKey === env.HR_API_KEY) || (fileId && await validFileToken(request, env, fileId));
 }
@@ -157,13 +178,10 @@ export default {
         if (clean(body.user) !== env.HR_LOGIN_USER || String(body.password || '') !== env.HR_LOGIN_PASSWORD) {
           return json({ error: 'Invalid HR Staff credentials' }, 401, headers);
         }
-        const token = crypto.randomUUID().replaceAll('-', '') + crypto.randomUUID().replaceAll('-', '');
-        sessions.set(token, Date.now() + 8 * 60 * 60 * 1000);
+        const token = await createSessionToken(env);
         return json({ authenticated: true }, 200, { ...headers, 'Set-Cookie': `starkson_hr_session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=28800` });
       }
       if (url.pathname === '/auth/logout' && request.method === 'POST') {
-        const token = cookies(request).starkson_hr_session;
-        if (token) sessions.delete(token);
         return json({ authenticated: false }, 200, { ...headers, 'Set-Cookie': 'starkson_hr_session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0' });
       }
       if (url.pathname === '/api/201-files' && request.method === 'GET') {
