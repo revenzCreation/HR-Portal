@@ -10,7 +10,8 @@ Static HR Portal website for Starkson Paper and Plastic Corporation.
 - `Directory Websites/referral-portal/` - employee referral workflow
 - `Directory Websites/mrf-monitor/` - manpower request monitor
 - `Directory Websites/201-files/` - authenticated employee 201 Files directory
-- `server/` - Node.js API boundary for private MEGA 201 Files storage
+- `cloudflare-api/` - Cloudflare Worker API boundary for private MEGA 201 Files storage
+- `server/` - local Node.js development API for private MEGA 201 Files storage
 
 ## Local website
 
@@ -20,7 +21,7 @@ For example, with VS Code Live Server use port `5500`, matching `server/.env`.
 
 ## 201 Files API
 
-The Node API reads MEGA credentials only from the ignored `server/.env` file. Never commit that file. Configure a deployment secret store on Cloudflare or the selected API host instead.
+The local Node API reads MEGA credentials only from the ignored `server/.env` file. The production Cloudflare Worker reads the same values from encrypted Worker secrets. Never commit either set of credentials.
 
 ```powershell
 cd server
@@ -28,8 +29,8 @@ npm install
 npm start
 ```
 
-The frontend should use the deployed API URL in production rather than `http://localhost:8787`.
+The production frontend uses the deployed Cloudflare Worker API. Local development uses `http://localhost:8787`.
 
 ## GitHub and Cloudflare
 
-Push the repository to GitHub, then connect the repository to Cloudflare Pages for the static website. The `server/` API must be deployed separately as a private server or Cloudflare Worker; Cloudflare Pages alone cannot run this Node.js process.
+Push the repository to GitHub, then connect the repository to Cloudflare Pages for the static website. Deploy `cloudflare-api/` as the `starkson-hr-api` Worker and keep its MEGA and HR values in Worker secrets.

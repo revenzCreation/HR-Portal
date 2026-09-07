@@ -1,0 +1,11 @@
+{
+  "name": "starkson-hr-portal-cloudflare-api",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "megajs": "^1.3.10"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.0"
+  }
+}
