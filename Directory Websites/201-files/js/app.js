@@ -1,4 +1,6 @@
-const API_BASE = 'http://localhost:8787';
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8787'
+  : 'https://hr-portal-6cc0.onrender.com';
 let records = [];
 const tableBody = document.getElementById('employeeRows');
 const emptyState = document.getElementById('emptyState');

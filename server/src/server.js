@@ -11,13 +11,14 @@ if (missing.length) throw new Error(`Missing environment variables: ${missing.jo
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
-const allowedOrigin = process.env.ALLOWED_ORIGIN || 'http://localhost:5500';
+const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://hr-portal.yourdevs.workers.dev';
 const allowedOrigins = new Set([allowedOrigin, 'null']);
 const filesById = new Map();
 const sessions = new Map();
 const sessionCookie = 'starkson_hr_session';
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(express.json({ limit: '32kb' }));
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 120, standardHeaders: 'draft-8', legacyHeaders: false }));
@@ -76,11 +77,11 @@ function parseEmployeeName(fileName) {
   return { surname: surname.toUpperCase(), firstName: firstName.toUpperCase(), suffix };
 }
 
-function recordFromFile(file) {
+function recordFromFile(file, apiOrigin) {
   const name = parseEmployeeName(file.name);
   const id = file.nodeId || file.name;
   filesById.set(id, file);
-  return { ...name, dateHired: '', directLink: `/api/201-files/${encodeURIComponent(id)}` };
+  return { ...name, dateHired: '', directLink: `${apiOrigin}/api/201-files/${encodeURIComponent(id)}` };
 }
 
 let mega;
@@ -124,11 +125,12 @@ app.post('/auth/logout', (req, res) => {
   res.json({ authenticated: false });
 });
 
-app.get('/api/201-files', authorize, async (_req, res) => {
+app.get('/api/201-files', authorize, async (req, res) => {
   try {
     filesById.clear();
     const files = folder.children.filter(item => item.directory !== true);
-    res.json(files.map(recordFromFile));
+    const apiOrigin = `${req.protocol}://${req.get('host')}`;
+    res.json(files.map(file => recordFromFile(file, apiOrigin)));
   } catch (error) {
     res.status(503).json({ error: '201 Files directory unavailable' });
   }
