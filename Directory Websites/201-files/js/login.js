@@ -3,10 +3,14 @@ const API_BASE = window.location.hostname === 'localhost' || window.location.hos
   : 'https://starkson-hr-api.yourdevs.workers.dev';
 const form = document.getElementById('loginForm');
 const status = document.getElementById('loginStatus');
+const authHeaders = () => {
+  const token = sessionStorage.getItem('starkson_hr_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 async function checkExistingSession() {
   try {
-    const response = await fetch(`${API_BASE}/auth/session`, { credentials: 'include' });
+    const response = await fetch(`${API_BASE}/auth/session`, { credentials: 'include', headers: authHeaders() });
     if (response.ok) window.location.replace('index.html');
   } catch {
     status.textContent = 'The HR authentication service is unavailable.';
@@ -28,6 +32,7 @@ form.addEventListener('submit', async event => {
     });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'Sign in failed');
+    sessionStorage.setItem('starkson_hr_token', result.token);
     window.location.replace('index.html');
   } catch (error) {
     status.textContent = error.message;

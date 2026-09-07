@@ -7,6 +7,10 @@ const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
 const recordCount = document.getElementById('recordCount');
 const canEditHireDate = false;
+const authHeaders = () => {
+  const token = sessionStorage.getItem('starkson_hr_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 function cleanText(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
@@ -85,7 +89,7 @@ function render() {
 
 async function initialize() {
   try {
-    const response = await fetch(`${API_BASE}/api/201-files`, { credentials: 'include' });
+    const response = await fetch(`${API_BASE}/api/201-files`, { credentials: 'include', headers: authHeaders() });
     if (response.status === 401) {
       window.location.replace('login.html');
       return;
