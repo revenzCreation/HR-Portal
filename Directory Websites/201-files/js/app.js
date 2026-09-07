@@ -1,16 +1,9 @@
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:8787'
-  : 'https://starkson-hr-api.yourdevs.workers.dev';
 let records = [];
 const tableBody = document.getElementById('employeeRows');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
 const recordCount = document.getElementById('recordCount');
 const canEditHireDate = false;
-const authHeaders = () => {
-  const token = sessionStorage.getItem('starkson_hr_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
 
 function cleanText(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
@@ -88,21 +81,10 @@ function render() {
 }
 
 async function initialize() {
-  try {
-    const response = await fetch(`${API_BASE}/api/201-files`, { credentials: 'include', headers: authHeaders() });
-    if (response.status === 401) {
-      window.location.replace('login.html');
-      return;
-    }
-    if (!response.ok) throw new Error('The 201 Files directory is unavailable.');
-    records = await response.json();
-    render();
-  } catch (error) {
-    recordCount.textContent = 'Unavailable';
-    emptyState.querySelector('h2').textContent = 'Directory unavailable';
-    emptyState.querySelector('p').textContent = error.message;
-    emptyState.classList.remove('hidden');
-  }
+  recordCount.textContent = 'Not configured';
+  emptyState.querySelector('h2').textContent = 'Secure storage is not configured yet';
+  emptyState.querySelector('p').textContent = 'The 201 Files directory will return when a new storage provider is selected.';
+  emptyState.classList.remove('hidden');
 }
 
 searchInput.addEventListener('input', render);

@@ -1,6 +1,0 @@
-name = "starkson-hr-api"
-main = "src/index.js"
-compatibility_date = "2026-09-07"
-
-[vars]
-ALLOWED_ORIGIN = "https://hr-portal.yourdevs.workers.dev"
