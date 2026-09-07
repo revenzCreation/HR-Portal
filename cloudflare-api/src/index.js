@@ -179,7 +179,7 @@ export default {
           return json({ error: 'Invalid HR Staff credentials' }, 401, headers);
         }
         const token = await createSessionToken(env);
-        return json({ authenticated: true }, 200, { ...headers, 'Set-Cookie': `starkson_hr_session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=28800` });
+        return json({ authenticated: true, token }, 200, { ...headers, 'Set-Cookie': `starkson_hr_session=${token}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=28800` });
       }
       if (url.pathname === '/auth/logout' && request.method === 'POST') {
         return json({ authenticated: false }, 200, { ...headers, 'Set-Cookie': 'starkson_hr_session=; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0' });
