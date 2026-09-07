@@ -1,7 +1,6 @@
 import { Storage } from 'megajs';
 
 const sessions = new Map();
-const filesById = new Map();
 let storagePromise;
 
 function origin(env) {
@@ -73,6 +72,11 @@ async function getFolder(env) {
   return storagePromise;
 }
 
+async function getFile(env, id) {
+  const folder = await getFolder(env);
+  return folder.children.find(file => file.directory !== true && (file.nodeId || file.name) === id);
+}
+
 function download(file) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -121,12 +125,10 @@ export default {
       if (!authorized(request, env)) return json({ error: 'HR authorization required' }, 401, headers);
 
       if (url.pathname === '/api/201-files' && request.method === 'GET') {
-        filesById.clear();
         const folder = await getFolder(env);
         const apiOrigin = url.origin;
         const records = folder.children.filter(item => item.directory !== true).map(file => {
           const id = file.nodeId || file.name;
-          filesById.set(id, file);
           return { ...parseEmployeeName(file.name), dateHired: '', directLink: `${apiOrigin}/api/201-files/${encodeURIComponent(id)}` };
         });
         return json(records, 200, headers);
@@ -134,7 +136,7 @@ export default {
 
       const match = url.pathname.match(/^\/api\/201-files\/([^/]+)$/);
       if (match && request.method === 'GET') {
-        const file = filesById.get(decodeURIComponent(match[1]));
+        const file = await getFile(env, decodeURIComponent(match[1]));
         if (!file) return json({ error: 'File not found or directory has not been refreshed' }, 404, headers);
         const data = await download(file);
         return new Response(data, { status: 200, headers: { ...headers, 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${file.name.replaceAll('"', '')}"` } });
