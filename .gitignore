@@ -6,6 +6,8 @@
 # Dependencies and runtime output
 node_modules/
 server/node_modules/
+cloudflare-api/node_modules/
+.wrangler/
 npm-debug.log*
 
 # Nested repository metadata from the original projects
