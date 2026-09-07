@@ -11,7 +11,7 @@ if (missing.length) throw new Error(`Missing environment variables: ${missing.jo
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
-const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://hr-portal.yourdevs.workers.dev';
+const allowedOrigin = (process.env.ALLOWED_ORIGIN || 'https://hr-portal.yourdevs.workers.dev').replace(/\/+$/, '');
 const allowedOrigins = new Set([allowedOrigin, 'null']);
 const filesById = new Map();
 const sessions = new Map();
