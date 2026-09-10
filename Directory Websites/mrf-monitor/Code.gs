@@ -21,9 +21,12 @@ const REFERRAL_HEADERS = [
   'HR Notes', 'Resume Link'
 ];
 const DISPLAY_REFERRAL_HEADERS = REFERRAL_HEADERS.map(header => header.toUpperCase());
+const SHEET_FONT_FAMILY = 'Arial';
+const SHEET_FONT_SIZE = 10;
 
 function doGet(e) {
   try {
+    applyWorkbookDefaults();
     const action = (e && e.parameter && e.parameter.action) || 'list';
     if (action === '201-list') {
       syncEmployeeFiles();
@@ -38,6 +41,7 @@ function doGet(e) {
 
 function doPost(e) {
   try {
+    applyWorkbookDefaults();
     const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (!body.action) return saveReferral(body);
     if (body.action === 'save') return json({ ok: true, record: saveRecord(body.record) });
@@ -60,11 +64,16 @@ function saveReferral(data) {
     const blob = Utilities.newBlob(bytes, data.mimeType, data.fileName);
     fileLink = folder.createFile(blob).getUrl();
   }
-  sheet.appendRow([
+  const row = [
     new Date(), data.referrerName, data.referrerEmail, data.referrerDepartment,
     data.candidateName, data.candidateEmail, data.candidatePhone,
     data.candidatePortfolio, data.targetRole, data.relationship, data.notes, fileLink
-  ]);
+  ];
+  sheet.appendRow(row);
+  if (fileLink !== 'No Resume Uploaded') {
+    setNamedLink(sheet, sheet.getLastRow(), REFERRAL_HEADERS.indexOf('Resume Link') + 1, fileLink, 'REFERRAL_LINK_' + (sheet.getLastRow() - 1));
+  }
+  applySheetDefaults(sheet, REFERRAL_HEADERS.length);
   return json({ status: 'success' });
 }
 
@@ -82,6 +91,8 @@ function getOrCreateReferralSheet() {
     .setFontWeight('normal')
     .setFontColor('#000000')
     .setBackground('#FFFFFF');
+  applySheetDefaults(sheet, REFERRAL_HEADERS.length);
+  normalizeNamedLinks(sheet, REFERRAL_HEADERS.indexOf('Resume Link') + 1, 'REFERRAL_LINK_');
   return sheet;
 }
 
@@ -100,16 +111,24 @@ function getSheet() {
     .setFontColor('#000000')
     .setBackground('#FFFFFF');
   sheet.getRange('A:A').setNumberFormat('@');
+  applySheetDefaults(sheet, HEADERS.length);
+  normalizeNamedLinks(sheet, HEADERS.indexOf('fileUrl') + 1, 'MRF_LINK_');
   return sheet;
 }
 
 function readRecords() {
   const sheet = getSheet();
   const values = sheet.getDataRange().getValues();
+  const richValues = sheet.getDataRange().getRichTextValues();
   if (values.length < 2) return [];
-  return values.slice(1).filter(row => row[0]).map(row => {
+  return values.slice(1).map((row, rowIndex) => ({ row, rowIndex }))
+    .filter(item => item.row[0])
+    .map(item => {
+    const row = item.row;
+    const rowIndex = item.rowIndex;
     const record = {};
     HEADERS.forEach((header, index) => record[header] = row[index] === '' ? '' : row[index]);
+    record.fileUrl = getRichTextUrl(richValues[rowIndex + 1][HEADERS.indexOf('fileUrl')]) || record.fileUrl;
     record.headcount = Number(record.headcount) || 1;
     record.createdAt = Number(record.createdAt) || 0;
     record.updatedAt = Number(record.updatedAt) || record.createdAt;
@@ -120,12 +139,17 @@ function readRecords() {
 function readEmployeeFiles() {
   const sheet = getEmployeeFilesSheet();
   const values = sheet.getDataRange().getValues();
+  const richValues = sheet.getDataRange().getRichTextValues();
   if (values.length < 2) return [];
-  return values.slice(1).filter(row => row[0] || row[1] || row[2]).map(row => {
+  return values.slice(1).map((row, rowIndex) => ({ row, rowIndex }))
+    .filter(item => item.row[0] || item.row[1] || item.row[2])
+    .map(item => {
+    const row = item.row;
+    const rowIndex = item.rowIndex;
     const record = {};
     EMPLOYEE_FILE_HEADERS.forEach((header, index) => record[header] = row[index] == null ? '' : row[index]);
     record.dateHired = formatEmployeeDate(record.dateHired);
-    record.directLink = record.directLink || makeDriveLink(record.driveFileId);
+    record.directLink = getRichTextUrl(richValues[rowIndex + 1][EMPLOYEE_FILE_HEADERS.indexOf('directLink')]) || record.directLink || makeDriveLink(record.driveFileId);
     delete record.driveFileId;
     return record;
   });
@@ -154,7 +178,12 @@ function syncEmployeeFiles() {
   if (newRows.length) {
     sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, EMPLOYEE_FILE_HEADERS.length)
       .setValues(newRows);
+    newRows.forEach((row, index) => {
+      const sheetRow = sheet.getLastRow() - newRows.length + index + 1;
+      setNamedLink(sheet, sheetRow, EMPLOYEE_FILE_HEADERS.indexOf('directLink') + 1, row[6], '201_LINK_' + (sheetRow - 1));
+    });
   }
+  applySheetDefaults(sheet, EMPLOYEE_FILE_HEADERS.length);
 }
 
 function getEmployeeFilesSheet() {
@@ -167,6 +196,8 @@ function getEmployeeFilesSheet() {
     .setFontColor('#1f2933')
     .setBackground('#d9ead3')
     .setHorizontalAlignment('center');
+  applySheetDefaults(sheet, EMPLOYEE_FILE_HEADERS.length);
+  normalizeNamedLinks(sheet, EMPLOYEE_FILE_HEADERS.indexOf('directLink') + 1, '201_LINK_');
   return sheet;
 }
 
@@ -225,6 +256,11 @@ function saveRecord(input) {
     const values = HEADERS.map(header => record[header] == null ? '' : record[header]);
     if (existingRow) sheet.getRange(existingRow, 1, 1, HEADERS.length).setValues([values]);
     else sheet.appendRow(values);
+    const savedRow = existingRow || sheet.getLastRow();
+    if (record.fileUrl) {
+      setNamedLink(sheet, savedRow, HEADERS.indexOf('fileUrl') + 1, record.fileUrl, 'MRF_LINK_' + (savedRow - 1));
+    }
+    applySheetDefaults(sheet, HEADERS.length);
     return record;
   } finally {
     lock.releaseLock();
@@ -265,6 +301,45 @@ function getUploadFolder() {
   if (CONFIG.driveFolderId) return DriveApp.getFolderById(CONFIG.driveFolderId);
   const folders = DriveApp.getFoldersByName(CONFIG.driveFolderName);
   return folders.hasNext() ? folders.next() : DriveApp.createFolder(CONFIG.driveFolderName);
+}
+
+function applySheetDefaults(sheet, columnCount) {
+  sheet.getRange(1, 1, Math.max(sheet.getMaxRows(), 1), columnCount)
+    .setFontFamily(SHEET_FONT_FAMILY)
+    .setFontSize(SHEET_FONT_SIZE);
+}
+
+function applyWorkbookDefaults() {
+  SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(sheet => {
+    const range = sheet.getDataRange();
+    range.setFontFamily(SHEET_FONT_FAMILY).setFontSize(SHEET_FONT_SIZE);
+  });
+}
+
+function normalizeNamedLinks(sheet, column, prefix) {
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return;
+  const range = sheet.getRange(2, column, lastRow - 1, 1);
+  const values = range.getValues();
+  const richValues = range.getRichTextValues();
+  values.forEach((row, index) => {
+    const url = getRichTextUrl(richValues[index][0]) || String(row[0] || '').trim();
+    if (/^https?:\/\//i.test(url)) {
+      setNamedLink(sheet, index + 2, column, url, prefix + (index + 1));
+    }
+  });
+}
+
+function setNamedLink(sheet, row, column, url, label) {
+  const richText = SpreadsheetApp.newRichTextValue()
+    .setText(label)
+    .setLinkUrl(url)
+    .build();
+  sheet.getRange(row, column).setRichTextValue(richText);
+}
+
+function getRichTextUrl(richText) {
+  return richText && richText.getLinkUrl ? richText.getLinkUrl() : '';
 }
 
 function json(value) {
