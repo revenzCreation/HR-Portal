@@ -1,7 +1,9 @@
 const CONFIG = {
   sheetName: 'MRF Requests',
+  employeeFilesSheetName: '201 Files',
   driveFolderId: '1m43NthL-cWmxjuC3iaYe9Gkxf1VHJrlq',
-  driveFolderName: 'MRF Monitor Uploads'
+  driveFolderName: 'MRF Monitor Uploads',
+  employeeFilesDriveFolderId: '1wroebNAIgVf6oMVa1EMm6gZ_-f6dCotL'
 };
 
 const HEADERS = [
@@ -10,6 +12,9 @@ const HEADERS = [
   'createdAt', 'updatedAt'
 ];
 const DISPLAY_HEADERS = HEADERS.map(header => header.replace(/[A-Z]/g, letter => ' ' + letter).toUpperCase());
+const EMPLOYEE_FILE_HEADERS = [
+  'id', 'surname', 'firstName', 'middleInitial', 'suffix', 'dateHired', 'directLink', 'driveFileId'
+];
 const REFERRAL_HEADERS = [
   'Timestamp', 'Referrer Name', 'Referrer Email', 'Department', 'Candidate Name',
   'Candidate Email', 'Phone', 'Portfolio', 'Target Role', 'Relationship',
@@ -20,6 +25,7 @@ const DISPLAY_REFERRAL_HEADERS = REFERRAL_HEADERS.map(header => header.toUpperCa
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || 'list';
+    if (action === '201-list') return json({ ok: true, records: readEmployeeFiles() });
     if (action !== 'list') return json({ ok: false, error: 'Unknown action' });
     return json({ ok: true, records: readRecords() });
   } catch (error) {
@@ -106,6 +112,50 @@ function readRecords() {
     record.updatedAt = Number(record.updatedAt) || record.createdAt;
     return record;
   }).sort((a, b) => b.createdAt - a.createdAt);
+}
+
+function readEmployeeFiles() {
+  const sheet = getEmployeeFilesSheet();
+  const values = sheet.getDataRange().getValues();
+  if (values.length < 2) return [];
+  return values.slice(1).filter(row => row[0] || row[1] || row[2]).map(row => {
+    const record = {};
+    EMPLOYEE_FILE_HEADERS.forEach((header, index) => record[header] = row[index] == null ? '' : row[index]);
+    record.dateHired = formatEmployeeDate(record.dateHired);
+    record.directLink = record.directLink || makeDriveLink(record.driveFileId);
+    delete record.driveFileId;
+    return record;
+  });
+}
+
+function getEmployeeFilesSheet() {
+  const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = spreadsheet.getSheetByName(CONFIG.employeeFilesSheetName);
+  if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.employeeFilesSheetName);
+  if (sheet.getLastRow() === 0) sheet.appendRow(EMPLOYEE_FILE_HEADERS);
+  sheet.getRange(1, 1, 1, EMPLOYEE_FILE_HEADERS.length)
+    .setFontWeight('bold')
+    .setFontColor('#1f2933')
+    .setBackground('#d9ead3')
+    .setHorizontalAlignment('center');
+  return sheet;
+}
+
+function formatEmployeeDate(value) {
+  if (!value) return '';
+  if (Object.prototype.toString.call(value) === '[object Date]') {
+    return Utilities.formatDate(value, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+  }
+  return String(value).trim().slice(0, 10);
+}
+
+function makeDriveLink(fileId) {
+  if (!fileId) return '';
+  try {
+    return DriveApp.getFileById(String(fileId).trim()).getUrl();
+  } catch (error) {
+    return '';
+  }
 }
 
 function saveRecord(input) {

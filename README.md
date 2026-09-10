@@ -19,7 +19,7 @@ For example, with VS Code Live Server use port `5500`.
 
 ## 201 Files API
 
-The 201 Files interface is currently paused while a replacement secure storage provider is selected. No storage credentials or backend connections are included in this project.
+The 201 Files directory uses the shared Google Apps Script deployment and a `201 Files` sheet. Employee files are stored in Google Drive; each row uses a Drive URL in `directLink` or a Drive file ID in `driveFileId`.
 
 ## GitHub and Cloudflare
 
