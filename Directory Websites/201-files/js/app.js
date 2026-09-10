@@ -3,7 +3,12 @@ const tableBody = document.getElementById('employeeRows');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
 const recordCount = document.getElementById('recordCount');
+const prevPageBtn = document.getElementById('prevPageBtn');
+const nextPageBtn = document.getElementById('nextPageBtn');
+const pageInfo = document.getElementById('pageInfo');
 const canEditHireDate = false;
+const PAGE_SIZE = 25;
+let currentPage = 1;
 
 function cleanText(value) {
   return String(value || '').trim().replace(/\s+/g, ' ');
@@ -56,16 +61,23 @@ function createLinkCell(record) {
   return directLink;
 }
 
-function render() {
-  if (!tableBody || !searchInput || !recordCount || !emptyState) return;
+function updatePagination(filtered) {
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  currentPage = Math.min(currentPage, totalPages);
 
-  const query = cleanText(searchInput.value).toUpperCase();
-  const filtered = records.filter(record => formatEmployeeName(record).includes(query));
-  tableBody.replaceChildren();
-  recordCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'record' : 'records'}`;
-  emptyState.classList.toggle('hidden', filtered.length > 0);
+  if (prevPageBtn) prevPageBtn.disabled = currentPage <= 1;
+  if (nextPageBtn) nextPageBtn.disabled = currentPage >= totalPages;
+  if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
 
-  filtered.forEach(record => {
+  return { totalPages, currentPage };
+}
+
+function renderPageChunk(items, startIndex) {
+  const fragment = document.createDocumentFragment();
+  const endIndex = Math.min(startIndex + 25, items.length);
+
+  for (let index = startIndex; index < endIndex; index += 1) {
+    const record = items[index];
     const row = document.createElement('tr');
     const nameCell = document.createElement('td');
     const dateCell = document.createElement('td');
@@ -78,8 +90,38 @@ function render() {
     linkCell.appendChild(createLinkCell(record));
 
     row.append(nameCell, dateCell, linkCell);
-    tableBody.appendChild(row);
-  });
+    fragment.appendChild(row);
+  }
+
+  tableBody.appendChild(fragment);
+
+  if (endIndex < items.length) {
+    requestAnimationFrame(() => renderPageChunk(items, endIndex));
+  }
+}
+
+function render() {
+  if (!tableBody || !searchInput || !recordCount || !emptyState) return;
+
+  const query = cleanText(searchInput.value).toUpperCase();
+  const filtered = records.filter(record => formatEmployeeName(record).includes(query));
+  const pagination = updatePagination(filtered);
+
+  const totalPages = pagination.totalPages;
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filtered.slice(startIndex, startIndex + PAGE_SIZE);
+
+  tableBody.replaceChildren();
+  recordCount.textContent = `${filtered.length} ${filtered.length === 1 ? 'record' : 'records'}`;
+  emptyState.classList.toggle('hidden', filtered.length > 0);
+
+  if (filtered.length === 0) {
+    if (pageInfo) pageInfo.textContent = 'Page 1 of 1';
+    return;
+  }
+
+  if (pageInfo) pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+  renderPageChunk(pageItems, 0);
 }
 
 async function initialize() {
@@ -106,6 +148,7 @@ async function initialize() {
     }
 
     records = Array.isArray(result.records) ? result.records : [];
+    currentPage = 1;
     render();
   } catch (error) {
     recordCount.textContent = 'Unavailable';
@@ -117,5 +160,31 @@ async function initialize() {
   }
 }
 
-if (searchInput) searchInput.addEventListener('input', render);
+if (searchInput) {
+  searchInput.addEventListener('input', () => {
+    currentPage = 1;
+    render();
+  });
+}
+
+if (prevPageBtn) {
+  prevPageBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage -= 1;
+      render();
+    }
+  });
+}
+
+if (nextPageBtn) {
+  nextPageBtn.addEventListener('click', () => {
+    const filtered = records.filter(record => formatEmployeeName(record).includes(cleanText(searchInput?.value || '').toUpperCase()));
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    if (currentPage < totalPages) {
+      currentPage += 1;
+      render();
+    }
+  });
+}
+
 initialize();

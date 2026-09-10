@@ -29,7 +29,9 @@ function doGet(e) {
     applyWorkbookDefaults();
     const action = (e && e.parameter && e.parameter.action) || 'list';
     if (action === '201-list') {
-      syncEmployeeFiles();
+      if (shouldSyncEmployeeFiles()) {
+        syncEmployeeFiles();
+      }
       return json({ ok: true, records: readEmployeeFiles() });
     }
     if (action !== 'list') return json({ ok: false, error: 'Unknown action' });
@@ -181,6 +183,15 @@ function readEmployeeFiles() {
   });
 }
 
+function shouldSyncEmployeeFiles() {
+  const sheet = getEmployeeFilesSheet();
+  if (sheet.getLastRow() <= 1) return true;
+
+  const lastSync = Number(PropertiesService.getScriptProperties().getProperty('201_FILES_LAST_SYNC') || '0');
+  const now = Date.now();
+  return now - lastSync > 60 * 60 * 1000;
+}
+
 function syncEmployeeFiles() {
   const sheet = getEmployeeFilesSheet();
   const existingIds = new Set();
@@ -209,6 +220,8 @@ function syncEmployeeFiles() {
       setNamedLink(sheet, sheetRow, EMPLOYEE_FILE_HEADERS.indexOf('directLink') + 1, row[6], '201_LINK_' + (sheetRow - 1));
     });
   }
+
+  PropertiesService.getScriptProperties().setProperty('201_FILES_LAST_SYNC', String(Date.now()));
   applySheetDefaults(sheet, EMPLOYEE_FILE_HEADERS.length);
 }
 
