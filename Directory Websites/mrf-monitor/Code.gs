@@ -152,10 +152,23 @@ function formatEmployeeDate(value) {
 function makeDriveLink(fileId) {
   if (!fileId) return '';
   try {
-    return DriveApp.getFileById(String(fileId).trim()).getUrl();
+    const file = DriveApp.getFileById(String(fileId).trim());
+    const folder = getEmployeeFilesFolder();
+    const parents = file.getParents();
+    while (parents.hasNext()) {
+      if (parents.next().getId() === folder.getId()) return file.getUrl();
+    }
+    return '';
   } catch (error) {
     return '';
   }
+}
+
+function getEmployeeFilesFolder() {
+  if (CONFIG.employeeFilesDriveFolderId) {
+    return DriveApp.getFolderById(CONFIG.employeeFilesDriveFolderId);
+  }
+  throw new Error('The 201 Files Drive folder is not configured');
 }
 
 function saveRecord(input) {
