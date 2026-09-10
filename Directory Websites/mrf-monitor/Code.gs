@@ -42,7 +42,10 @@ function doGet(e) {
 function doPost(e) {
   try {
     applyWorkbookDefaults();
-    const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const body = parseJsonBody(e);
+    if (!body || typeof body !== 'object') {
+      return json({ ok: false, error: 'Invalid request payload' });
+    }
     if (!body.action) return saveReferral(body);
     if (body.action === 'save') return json({ ok: true, record: saveRecord(body.record) });
     if (body.action === 'delete') {
@@ -51,17 +54,28 @@ function doPost(e) {
     }
     return json({ ok: false, error: 'Unknown action' });
   } catch (error) {
-    return json({ ok: false, error: error.message });
+    return json({ ok: false, error: error.message || 'Unexpected server error' });
+  }
+}
+
+function parseJsonBody(e) {
+  const raw = (e && e.postData && e.postData.contents) || '';
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    throw new Error('Invalid JSON payload');
   }
 }
 
 function saveReferral(data) {
   const sheet = getOrCreateReferralSheet();
   let fileLink = 'No Resume Uploaded';
-  if (data.hasFile && data.fileData) {
-    const folder = DriveApp.getFolderById('1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl');
-    const bytes = Utilities.base64Decode(data.fileData.split(',').pop());
-    const blob = Utilities.newBlob(bytes, data.mimeType, data.fileName);
+  if (data && data.hasFile && data.fileData) {
+    const folder = getReferralFolder();
+    const bytes = Utilities.base64Decode(String(data.fileData).split(',').pop());
+    const blob = Utilities.newBlob(bytes, data.mimeType || 'application/octet-stream', data.fileName || 'referral-upload');
     fileLink = folder.createFile(blob).getUrl();
   }
   const row = [
@@ -75,6 +89,18 @@ function saveReferral(data) {
   }
   applySheetDefaults(sheet, REFERRAL_HEADERS.length);
   return json({ status: 'success' });
+}
+
+function getReferralFolder() {
+  const folderId = '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl';
+  try {
+    return DriveApp.getFolderById(folderId);
+  } catch (error) {
+    const rootFolder = DriveApp.getRootFolder();
+    const existing = DriveApp.getFoldersByName('Referral Uploads');
+    if (existing.hasNext()) return existing.next();
+    return rootFolder.createFolder('Referral Uploads');
+  }
 }
 
 function getOrCreateReferralSheet() {
