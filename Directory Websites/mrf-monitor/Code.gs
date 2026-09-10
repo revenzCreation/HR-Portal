@@ -25,7 +25,10 @@ const DISPLAY_REFERRAL_HEADERS = REFERRAL_HEADERS.map(header => header.toUpperCa
 function doGet(e) {
   try {
     const action = (e && e.parameter && e.parameter.action) || 'list';
-    if (action === '201-list') return json({ ok: true, records: readEmployeeFiles() });
+    if (action === '201-list') {
+      syncEmployeeFiles();
+      return json({ ok: true, records: readEmployeeFiles() });
+    }
     if (action !== 'list') return json({ ok: false, error: 'Unknown action' });
     return json({ ok: true, records: readRecords() });
   } catch (error) {
@@ -126,6 +129,32 @@ function readEmployeeFiles() {
     delete record.driveFileId;
     return record;
   });
+}
+
+function syncEmployeeFiles() {
+  const sheet = getEmployeeFilesSheet();
+  const existingIds = new Set();
+  if (sheet.getLastRow() > 1) {
+    sheet.getRange(2, 8, sheet.getLastRow() - 1, 1).getValues()
+      .forEach(row => {
+        const fileId = String(row[0] || '').trim();
+        if (fileId) existingIds.add(fileId);
+      });
+  }
+
+  const folder = getEmployeeFilesFolder();
+  const files = folder.getFiles();
+  const newRows = [];
+  while (files.hasNext()) {
+    const file = files.next();
+    if (existingIds.has(file.getId())) continue;
+    newRows.push([file.getId(), file.getName(), '', '', '', '', file.getUrl(), file.getId()]);
+  }
+
+  if (newRows.length) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, EMPLOYEE_FILE_HEADERS.length)
+      .setValues(newRows);
+  }
 }
 
 function getEmployeeFilesSheet() {

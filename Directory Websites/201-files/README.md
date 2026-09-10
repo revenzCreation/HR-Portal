@@ -25,4 +25,4 @@ The directory reads from the shared Google Apps Script deployment used by the MR
 
 `id`, `surname`, `firstName`, `middleInitial`, `suffix`, `dateHired`, `directLink`, `driveFileId`
 
-Store employee files in the [201 Files Drive folder](https://drive.google.com/drive/folders/1wroebNAIgVf6oMVa1EMm6gZ_-f6dCotL). Put a shareable Drive URL in `directLink`, or put the Drive file ID in `driveFileId` and the Apps Script will generate the file URL. The frontend requests the records with `action=201-list`.
+Store employee files in the [201 Files Drive folder](https://drive.google.com/drive/folders/1wroebNAIgVf6oMVa1EMm6gZ_-f6dCotL). Each request to `action=201-list` now imports new files from that folder into the `201 Files` sheet. Imported rows use the filename as the temporary surname and leave the other employee fields blank, so complete the employee name and hire date in the sheet. Existing rows are not overwritten. You can also put a shareable Drive URL in `directLink`, or put the Drive file ID in `driveFileId` and the Apps Script will generate the file URL.
