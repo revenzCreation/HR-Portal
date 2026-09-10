@@ -1,67 +1,94 @@
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMtnoAr3Y8Y8JNsWcUw_Lyv1-lEU_9-QlVExhpqBhHUjseiUz97wyxD6fCnvsRSmrT/exec';
+﻿const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMtnoAr3Y8Y8JNsWcUw_Lyv1-lEU_9-QlVExhpqBhHUjseiUz97wyxD6fCnvsRSmrT/exec';
 const form = document.getElementById('referralForm');
 
-// ==========================================
-// VIEW NAVIGATION & FOCUS MANAGEMENT
-// ==========================================
 const landingView = document.getElementById('landingView');
 const formView = document.getElementById('formView');
+const startReferralBtn = document.getElementById('startReferralBtn');
+const backBtn = document.getElementById('backBtn');
+const deptSelect = document.getElementById('referrerDepartment');
+const otherDeptGroup = document.getElementById('otherDeptGroup');
+const otherDeptInput = document.getElementById('otherDepartment');
+const relationshipSelect = document.getElementById('relationship');
+const otherRelationshipGroup = document.getElementById('otherRelationshipGroup');
+const otherRelationshipInput = document.getElementById('otherRelationship');
+const phoneInput = document.getElementById('candidatePhone');
+const notesArea = document.getElementById('notes');
+const charCount = document.getElementById('charCount');
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('resume');
+const filePreview = document.getElementById('filePreview');
+const fileName = document.getElementById('fileName');
+const removeFileBtn = document.getElementById('removeFileBtn');
+const dropZoneContent = document.getElementById('dropZoneContent');
+const resumeGroup = document.getElementById('resumeGroup');
+const fileError = document.getElementById('fileError');
+const statusDiv = document.getElementById('statusMessage');
 
-document.getElementById('startReferralBtn').addEventListener('click', () => {
-  landingView.classList.replace('active', 'hidden');
-  setTimeout(() => {
-    formView.classList.replace('hidden', 'active');
-    document.getElementById('referrerName').focus();
-  }, 150);
-});
+function safeReadDraft() {
+  try {
+    const raw = localStorage.getItem('referralDraft');
+    return raw ? JSON.parse(raw) : {};
+  } catch (error) {
+    return {};
+  }
+}
 
-document.getElementById('backBtn').addEventListener('click', () => {
-  formView.classList.replace('active', 'hidden');
-  setTimeout(() => {
-    landingView.classList.replace('hidden', 'active');
-  }, 150);
-});
-
-// ==========================================
-// STATE PERSISTENCE (AUTO-SAVE DRAFT)
-// ==========================================
 const saveDraft = () => {
+  if (!form) return;
   const draft = {};
   const inputs = form.querySelectorAll('input:not([type="file"]), select, textarea');
-  inputs.forEach(input => { draft[input.id] = input.value; });
+  inputs.forEach(input => {
+    draft[input.id] = input.value;
+  });
   localStorage.setItem('referralDraft', JSON.stringify(draft));
 };
 
 const debounce = (func, delay = 500) => {
   let timer;
-  return (...args) => { clearTimeout(timer); timer = setTimeout(() => { func.apply(this, args); }, delay); };
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => func.apply(this, args), delay);
+  };
 };
 
-form.addEventListener('input', debounce(saveDraft, 800));
-form.addEventListener('change', saveDraft);
+if (startReferralBtn) {
+  startReferralBtn.addEventListener('click', () => {
+    if (landingView) landingView.classList.replace('active', 'hidden');
+    setTimeout(() => {
+      if (formView) formView.classList.replace('hidden', 'active');
+      const referrerName = document.getElementById('referrerName');
+      if (referrerName) referrerName.focus();
+    }, 150);
+  });
+}
+
+if (backBtn) {
+  backBtn.addEventListener('click', () => {
+    if (formView) formView.classList.replace('active', 'hidden');
+    setTimeout(() => {
+      if (landingView) landingView.classList.replace('hidden', 'active');
+    }, 150);
+  });
+}
+
+if (form) {
+  form.addEventListener('input', debounce(saveDraft, 800));
+  form.addEventListener('change', saveDraft);
+}
 
 document.addEventListener('DOMContentLoaded', () => {
-  const draftData = localStorage.getItem('referralDraft');
-  if (draftData) {
-    const draft = JSON.parse(draftData);
-    Object.keys(draft).forEach(key => {
-      const field = document.getElementById(key);
-      if (field) field.value = draft[key];
-    });
-    checkOtherDeptVisibility();
-    checkOtherRelationshipVisibility();
-    updateProgress();
-  }
+  const draft = safeReadDraft();
+  Object.keys(draft).forEach(key => {
+    const field = document.getElementById(key);
+    if (field) field.value = draft[key];
+  });
+  checkOtherDeptVisibility();
+  checkOtherRelationshipVisibility();
+  updateProgress();
 });
 
-// ==========================================
-// "OTHER" DEPARTMENT & RELATIONSHIP LOGIC
-// ==========================================
-const deptSelect = document.getElementById('referrerDepartment');
-const otherDeptGroup = document.getElementById('otherDeptGroup');
-const otherDeptInput = document.getElementById('otherDepartment');
-
 function checkOtherDeptVisibility() {
+  if (!deptSelect || !otherDeptGroup || !otherDeptInput) return;
   if (deptSelect.value === 'Other') {
     otherDeptGroup.classList.add('show');
     otherDeptInput.setAttribute('required', 'true');
@@ -72,13 +99,10 @@ function checkOtherDeptVisibility() {
     otherDeptGroup.classList.remove('invalid');
   }
 }
-deptSelect.addEventListener('change', checkOtherDeptVisibility);
-
-const relationshipSelect = document.getElementById('relationship');
-const otherRelationshipGroup = document.getElementById('otherRelationshipGroup');
-const otherRelationshipInput = document.getElementById('otherRelationship');
+if (deptSelect) deptSelect.addEventListener('change', checkOtherDeptVisibility);
 
 function checkOtherRelationshipVisibility() {
+  if (!relationshipSelect || !otherRelationshipGroup || !otherRelationshipInput) return;
   if (relationshipSelect.value === 'Other') {
     otherRelationshipGroup.classList.add('show');
     otherRelationshipInput.setAttribute('required', 'true');
@@ -89,34 +113,28 @@ function checkOtherRelationshipVisibility() {
     otherRelationshipGroup.classList.remove('invalid');
   }
 }
-relationshipSelect.addEventListener('change', checkOtherRelationshipVisibility);
+if (relationshipSelect) relationshipSelect.addEventListener('change', checkOtherRelationshipVisibility);
 
-// ==========================================
-// INTERACTIVE INPUT MASKING (PHONE)
-// ==========================================
-const phoneInput = document.getElementById('candidatePhone');
-phoneInput.addEventListener('input', (e) => {
-  let val = e.target.value.replace(/\D/g, '');
-  if (val.length > 11) val = val.substring(0, 11);
-  
-  let formatted = val;
-  if (val.length > 4) formatted = val.substring(0, 4) + ' ' + val.substring(4);
-  if (val.length > 7) formatted = formatted.substring(0, 8) + ' ' + formatted.substring(8);
-  e.target.value = formatted;
-});
+if (phoneInput) {
+  phoneInput.addEventListener('input', (e) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val.length > 11) val = val.substring(0, 11);
+    let formatted = val;
+    if (val.length > 4) formatted = val.substring(0, 4) + ' ' + val.substring(4);
+    if (val.length > 7) formatted = formatted.substring(0, 8) + ' ' + formatted.substring(8);
+    e.target.value = formatted;
+  });
+}
 
-// ==========================================
-// MULTI-STEP WIZARD LOGIC
-// ==========================================
 const steps = ['step1', 'step2', 'step3'];
 let currentStepIndex = 0;
 
 document.querySelectorAll('.next-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     const targetStepId = e.target.getAttribute('data-next');
-    if (validateStep(steps[currentStepIndex])) {
+    if (targetStepId && validateStep(steps[currentStepIndex])) {
       transitionStep(steps[currentStepIndex], targetStepId);
-      currentStepIndex++;
+      currentStepIndex = Math.min(currentStepIndex + 1, steps.length - 1);
     }
   });
 });
@@ -124,76 +142,80 @@ document.querySelectorAll('.next-btn').forEach(btn => {
 document.querySelectorAll('.prev-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     const targetStepId = e.target.getAttribute('data-prev');
-    transitionStep(steps[currentStepIndex], targetStepId);
-    currentStepIndex--;
+    if (targetStepId) {
+      transitionStep(steps[currentStepIndex], targetStepId);
+      currentStepIndex = Math.max(currentStepIndex - 1, 0);
+    }
   });
 });
 
 function transitionStep(currentId, nextId) {
   const currentStep = document.getElementById(currentId);
   const nextStep = document.getElementById(nextId);
-  
+  if (!currentStep || !nextStep) return;
   currentStep.classList.replace('active', 'hidden');
   nextStep.classList.replace('hidden', 'active');
-  
   const firstInput = nextStep.querySelector('input, select, textarea');
   if (firstInput) firstInput.focus();
 }
 
-// ==========================================
-// REAL-TIME & STEP VALIDATION
-// ==========================================
 function validateField(input) {
+  if (!input || typeof input.closest !== 'function') return true;
   const group = input.closest('.form-group');
+  if (!group) return true;
+
   let isValid = true;
-  let customError = "";
+  let customError = '';
 
   if (input.hasAttribute('required') && !input.value.trim()) {
     isValid = false;
   } else if (input.value.trim()) {
-    
-    // GMAIL FORMAT VALIDATION FOR REFERRER
     if (input.id === 'referrerEmail') {
-      const gmailRegex = /^[a-z0-9._%+-]+@gmail\.com$/;
-      if (!gmailRegex.test(input.value.trim().toLowerCase())) {
-        isValid = false; customError = "Must be a valid @gmail.com address.";
+      const gmailRegex = /^[a-z0-9._%+-]+@gmail\.com$/i;
+      if (!gmailRegex.test(input.value.trim())) {
+        isValid = false;
+        customError = 'Must be a valid @gmail.com address.';
       }
     }
-    
-    // GMAIL FORMAT VALIDATION FOR CANDIDATE
+
     if (input.id === 'candidateEmail') {
-      const gmailRegex = /^[a-z0-9._%+-]+@gmail\.com$/;
-      if (!gmailRegex.test(input.value.trim().toLowerCase())) {
-        isValid = false; customError = "Candidate email must end with @gmail.com.";
+      const gmailRegex = /^[a-z0-9._%+-]+@gmail\.com$/i;
+      if (!gmailRegex.test(input.value.trim())) {
+        isValid = false;
+        customError = 'Candidate email must end with @gmail.com.';
       }
     }
-    
+
     if (input.id === 'candidatePhone') {
       const rawPhone = input.value.replace(/\s/g, '');
       const phoneRegex = /^09\d{9}$/;
       if (!phoneRegex.test(rawPhone)) {
-        isValid = false; customError = "Must be exactly 11 digits starting with 09.";
+        isValid = false;
+        customError = 'Must be exactly 11 digits starting with 09.';
       }
     }
   }
 
   if (!isValid) {
     group.classList.add('invalid');
-    if (customError && group.querySelector('.error-msg')) {
-      group.querySelector('.error-msg').textContent = customError;
-    }
+    const errorElement = group.querySelector('.error-msg');
+    if (customError && errorElement) errorElement.textContent = customError;
   } else {
     group.classList.remove('invalid');
   }
+
   return isValid;
 }
 
-form.querySelectorAll('input, select, textarea').forEach(input => {
-  input.addEventListener('blur', () => validateField(input));
-});
+if (form) {
+  form.querySelectorAll('input, select, textarea').forEach(input => {
+    input.addEventListener('blur', () => validateField(input));
+  });
+}
 
 function validateStep(stepId) {
   const step = document.getElementById(stepId);
+  if (!step) return false;
   const inputs = step.querySelectorAll('input, select, textarea');
   let isStepValid = true;
 
@@ -206,78 +228,82 @@ function validateStep(stepId) {
   return isStepValid;
 }
 
-// ==========================================
-// ADVANCED FILE UPLOAD HANDLING
-// ==========================================
-const dropZone = document.getElementById('dropZone');
-const fileInput = document.getElementById('resume');
-const filePreview = document.getElementById('filePreview');
-const fileName = document.getElementById('fileName');
-const removeFileBtn = document.getElementById('removeFileBtn');
-const dropZoneContent = document.getElementById('dropZoneContent');
-const resumeGroup = document.getElementById('resumeGroup');
-const fileError = document.getElementById('fileError');
-
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
-  'application/pdf', 
-  'application/msword', 
+  'application/pdf',
+  'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
 
-['dragenter', 'dragover'].forEach(eName => dropZone.addEventListener(eName, e => { e.preventDefault(); dropZone.classList.add('dragover'); }));
-['dragleave', 'drop'].forEach(eName => dropZone.addEventListener(eName, e => { e.preventDefault(); dropZone.classList.remove('dragover'); }));
+if (dropZone) {
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, e => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+  });
 
-fileInput.addEventListener('change', handleFileSelect);
-removeFileBtn.addEventListener('click', clearFile);
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+    });
+  });
+}
 
-function clearFile(e) {
-  if (e) e.stopPropagation();
-  fileInput.value = '';
-  filePreview.classList.add('hidden');
-  dropZoneContent.classList.remove('hidden');
-  resumeGroup.classList.add('invalid');
-  fileError.textContent = "Please upload a valid resume file under 5MB.";
+function clearFile(event) {
+  if (event) event.stopPropagation();
+  if (fileInput) fileInput.value = '';
+  if (filePreview) filePreview.classList.add('hidden');
+  if (dropZoneContent) dropZoneContent.classList.remove('hidden');
+  if (resumeGroup) resumeGroup.classList.add('invalid');
+  if (fileError) fileError.textContent = 'Please upload a valid resume file under 5MB.';
   updateProgress();
 }
 
+if (fileInput) fileInput.addEventListener('change', handleFileSelect);
+if (removeFileBtn) removeFileBtn.addEventListener('click', clearFile);
+
 function handleFileSelect() {
+  if (!fileInput) return;
   if (fileInput.files.length > 0) {
     const file = fileInput.files[0];
-    
+
     if (file.size > MAX_FILE_SIZE) {
       clearFile();
-      fileError.textContent = "File exceeds 5MB limit. Please compress and try again.";
-      resumeGroup.classList.add('invalid');
-      return;
-    }
-    
-    if (!ALLOWED_MIME_TYPES.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
-      clearFile();
-      fileError.textContent = "Invalid file type. Only PDF, DOC, or DOCX allowed.";
-      resumeGroup.classList.add('invalid');
+      if (fileError) fileError.textContent = 'File exceeds 5MB limit. Please compress and try again.';
+      if (resumeGroup) resumeGroup.classList.add('invalid');
       return;
     }
 
-    fileName.textContent = file.name;
-    dropZoneContent.classList.add('hidden');
-    filePreview.classList.remove('hidden');
-    resumeGroup.classList.remove('invalid');
-  } else {
+    if (!ALLOWED_MIME_TYPES.includes(file.type) && !file.name.match(/\.(pdf|doc|docx)$/i)) {
+      clearFile();
+      if (fileError) fileError.textContent = 'Invalid file type. Only PDF, DOC, or DOCX allowed.';
+      if (resumeGroup) resumeGroup.classList.add('invalid');
+      return;
+    }
+
+    if (fileName) fileName.textContent = file.name;
+    if (dropZoneContent) dropZoneContent.classList.add('hidden');
+    if (filePreview) filePreview.classList.remove('hidden');
+    if (resumeGroup) resumeGroup.classList.remove('invalid');
+  } else if (resumeGroup) {
     resumeGroup.classList.add('invalid');
   }
   updateProgress();
 }
 
-// ==========================================
-// PROGRESS BAR & CHAR COUNTER
-// ==========================================
-const notesArea = document.getElementById('notes');
-const charCount = document.getElementById('charCount');
-notesArea.addEventListener('input', () => { charCount.textContent = notesArea.value.length; });
+if (notesArea && charCount) {
+  notesArea.addEventListener('input', () => {
+    charCount.textContent = String(notesArea.value.length);
+  });
+}
 
 function updateProgress() {
-  const allRequired = Array.from(document.querySelectorAll('#referralForm [required]'));
+  const formEl = document.getElementById('referralForm');
+  if (!formEl) return;
+
+  const allRequired = Array.from(formEl.querySelectorAll('[required]'));
   const activeRequired = allRequired.filter(input => {
     const group = input.closest('.form-group');
     if (group && group.classList.contains('hidden-dept') && !group.classList.contains('show')) {
@@ -285,106 +311,112 @@ function updateProgress() {
     }
     return input.hasAttribute('required');
   });
-  
+
   let filled = 0;
   activeRequired.forEach(input => {
-    if (input.type === 'file' && input.files.length > 0) filled++;
+    if (input.type === 'file' && input.files && input.files.length > 0) filled++;
     else if (input.type !== 'file' && input.value.trim() !== '') filled++;
   });
-  
+
   const percent = activeRequired.length > 0 ? (filled / activeRequired.length) * 100 : 0;
-  document.getElementById('progressBar').style.width = `${percent}%`;
+  const progressBar = document.getElementById('progressBar');
+  if (progressBar) progressBar.style.width = `${percent}%`;
 }
 
-form.addEventListener('input', updateProgress);
-form.addEventListener('change', updateProgress);
+if (form) {
+  form.addEventListener('input', updateProgress);
+  form.addEventListener('change', updateProgress);
+}
 
-// ==========================================
-// FORM SUBMISSION
-// ==========================================
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const submitBtn = document.getElementById('submitBtn');
-  const spinner = document.getElementById('loadingSpinner');
-  const statusDiv = document.getElementById('statusMessage');
+if (form) {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const submitBtn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('loadingSpinner');
 
-  if (!validateStep('step3')) {
-    statusDiv.textContent = "Please fix the highlighted errors before submitting.";
-    statusDiv.className = 'status-box error';
-    return;
-  }
-
-  submitBtn.disabled = true;
-  spinner.classList.remove('hidden');
-  statusDiv.className = 'status-box hidden';
-
-  const finalDept = deptSelect.value === 'Other' ? otherDeptInput.value.trim() : deptSelect.value;
-  const finalRelationship = relationshipSelect.value === 'Other' ? otherRelationshipInput.value.trim() : relationshipSelect.value;
-  const rawPhone = phoneInput.value.replace(/\s/g, '');
-  const file = fileInput.files[0];
-  
-  const submitData = async (fileData = null, fileNameStr = '', mimeTypeStr = '') => {
-    const payload = {
-      referrerName: form.referrerName.value.trim(),
-      referrerEmail: form.referrerEmail.value.trim(),
-      referrerDepartment: finalDept,
-      candidateName: form.candidateName.value.trim(),
-      candidateEmail: form.candidateEmail.value.trim(),
-      candidatePhone: rawPhone,
-      candidatePortfolio: form.candidatePortfolio.value.trim() || 'N/A',
-      targetRole: form.targetRole.value.trim(),
-      relationship: finalRelationship,
-      notes: form.notes.value.trim() || 'None provided',
-      hasFile: !!fileData,
-      fileName: fileNameStr,
-      mimeType: mimeTypeStr,
-      fileData: fileData
-    };
-
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload),
-        headers: { 'Content-Type': 'text/plain' }
-      });
-
-      localStorage.removeItem('referralDraft');
-      
-      statusDiv.textContent = "Referral successfully submitted. A copy has been dispatched to your email.";
-      statusDiv.className = 'status-box success';
-      
-      form.reset();
-      clearFile();
-      checkOtherDeptVisibility();
-      checkOtherRelationshipVisibility();
-      charCount.textContent = '0';
-      document.getElementById('progressBar').style.width = '0%';
-      
-      // Fix: Reset step index back to 0 so subsequent form submissions work seamlessly
-      currentStepIndex = 0;
-      
-      setTimeout(() => {
-        transitionStep('step3', 'step1');
-        submitBtn.disabled = false;
-      }, 2000);
-
-    } catch (err) {
-      statusDiv.textContent = 'Network error. Unable to complete submission at this time.';
-      statusDiv.className = 'status-box error';
-      submitBtn.disabled = false;
-    } finally {
-      spinner.classList.add('hidden');
+    if (!validateStep('step3')) {
+      if (statusDiv) {
+        statusDiv.textContent = 'Please fix the highlighted errors before submitting.';
+        statusDiv.className = 'status-box error';
+      }
+      return;
     }
-  };
 
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64Data = reader.result.split(',')[1];
-      submitData(base64Data, file.name, file.type);
+    if (submitBtn) submitBtn.disabled = true;
+    if (spinner) spinner.classList.remove('hidden');
+    if (statusDiv) statusDiv.className = 'status-box hidden';
+
+    const finalDept = deptSelect && deptSelect.value === 'Other' ? (otherDeptInput ? otherDeptInput.value.trim() : '') : (deptSelect ? deptSelect.value : '');
+    const finalRelationship = relationshipSelect && relationshipSelect.value === 'Other' ? (otherRelationshipInput ? otherRelationshipInput.value.trim() : '') : (relationshipSelect ? relationshipSelect.value : '');
+    const rawPhone = phoneInput ? phoneInput.value.replace(/\s/g, '') : '';
+    const file = fileInput ? fileInput.files[0] : null;
+
+    const submitData = async (fileData = null, fileNameStr = '', mimeTypeStr = '') => {
+      const payload = {
+        referrerName: document.getElementById('referrerName') ? document.getElementById('referrerName').value.trim() : '',
+        referrerEmail: document.getElementById('referrerEmail') ? document.getElementById('referrerEmail').value.trim() : '',
+        referrerDepartment: finalDept,
+        candidateName: document.getElementById('candidateName') ? document.getElementById('candidateName').value.trim() : '',
+        candidateEmail: document.getElementById('candidateEmail') ? document.getElementById('candidateEmail').value.trim() : '',
+        candidatePhone: rawPhone,
+        candidatePortfolio: document.getElementById('candidatePortfolio') ? document.getElementById('candidatePortfolio').value.trim() || 'N/A' : 'N/A',
+        targetRole: document.getElementById('targetRole') ? document.getElementById('targetRole').value.trim() : '',
+        relationship: finalRelationship,
+        notes: document.getElementById('notes') ? document.getElementById('notes').value.trim() || 'None provided' : 'None provided',
+        hasFile: !!fileData,
+        fileName: fileNameStr,
+        mimeType: mimeTypeStr,
+        fileData: fileData
+      };
+
+      try {
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'text/plain' }
+        });
+
+        localStorage.removeItem('referralDraft');
+
+        if (statusDiv) {
+          statusDiv.textContent = 'Referral successfully submitted. A copy has been dispatched to your email.';
+          statusDiv.className = 'status-box success';
+        }
+
+        form.reset();
+        clearFile();
+        checkOtherDeptVisibility();
+        checkOtherRelationshipVisibility();
+        if (charCount) charCount.textContent = '0';
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) progressBar.style.width = '0%';
+
+        currentStepIndex = 0;
+
+        setTimeout(() => {
+          transitionStep('step3', 'step1');
+          if (submitBtn) submitBtn.disabled = false;
+        }, 2000);
+      } catch (error) {
+        if (statusDiv) {
+          statusDiv.textContent = 'Network error. Unable to complete submission at this time.';
+          statusDiv.className = 'status-box error';
+        }
+        if (submitBtn) submitBtn.disabled = false;
+      } finally {
+        if (spinner) spinner.classList.add('hidden');
+      }
     };
-    reader.readAsDataURL(file);
-  } else {
-    submitData();
-  }
-});
+
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64Data = typeof reader.result === 'string' ? reader.result.split(',')[1] : '';
+        submitData(base64Data, file.name, file.type);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      submitData();
+    }
+  });
+}

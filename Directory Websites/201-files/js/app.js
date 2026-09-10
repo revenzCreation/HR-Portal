@@ -10,9 +10,9 @@ function cleanText(value) {
 }
 
 function formatEmployeeName(record) {
-  const surname = cleanText(record.surname).toUpperCase();
-  const suffix = cleanText(record.suffix).toUpperCase();
-  const firstName = cleanText(record.firstName).toUpperCase();
+  const surname = cleanText(record?.surname).toUpperCase();
+  const suffix = cleanText(record?.suffix).toUpperCase();
+  const firstName = cleanText(record?.firstName).toUpperCase();
   const nameParts = [surname];
   if (suffix) nameParts.push(suffix);
   if (firstName) nameParts.push(firstName);
@@ -30,7 +30,7 @@ function createDateCell(record) {
   const dateInput = document.createElement('input');
   dateInput.className = 'date-input';
   dateInput.type = 'date';
-  dateInput.value = cleanText(record.dateHired);
+  dateInput.value = cleanText(record?.dateHired);
   dateInput.disabled = !canEditHireDate;
   dateInput.setAttribute('aria-label', `Date hired for ${formatEmployeeName(record)}`);
   return dateInput;
@@ -43,7 +43,7 @@ function createLinkCell(record) {
   directLink.target = '_blank';
   directLink.rel = 'noopener noreferrer';
 
-  if (record.directLink) {
+  if (record?.directLink) {
     directLink.href = record.directLink;
     directLink.innerHTML = '201 Direct Link <span aria-hidden="true">↗</span>';
   } else {
@@ -57,6 +57,8 @@ function createLinkCell(record) {
 }
 
 function render() {
+  if (!tableBody || !searchInput || !recordCount || !emptyState) return;
+
   const query = cleanText(searchInput.value).toUpperCase();
   const filtered = records.filter(record => formatEmployeeName(record).includes(query));
   tableBody.replaceChildren();
@@ -81,20 +83,39 @@ function render() {
 }
 
 async function initialize() {
+  if (!recordCount || !emptyState) return;
   recordCount.textContent = 'Loading...';
+
   try {
-    const response = await fetch(`${window.HR_PORTAL_API_URL}?action=201-list`);
-    const result = await response.json();
-    if (!result.ok) throw new Error(result.error || 'Could not load employee files');
+    const apiUrl = window.HR_PORTAL_API_URL;
+    if (!apiUrl || !/^https?:\/\//i.test(apiUrl)) {
+      throw new Error('The employee directory API URL is not configured.');
+    }
+
+    const response = await fetch(`${apiUrl}?action=201-list`);
+    const text = await response.text();
+    let result = {};
+    try {
+      result = text ? JSON.parse(text) : {};
+    } catch (error) {
+      throw new Error('The employee directory returned an invalid response.');
+    }
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || 'Could not load employee files');
+    }
+
     records = Array.isArray(result.records) ? result.records : [];
     render();
   } catch (error) {
     recordCount.textContent = 'Unavailable';
-    emptyState.querySelector('h2').textContent = 'Employee files are unavailable';
-    emptyState.querySelector('p').textContent = error.message || 'Could not connect to Google Sheets.';
+    const title = emptyState.querySelector('h2');
+    const description = emptyState.querySelector('p');
+    if (title) title.textContent = 'Employee files are unavailable';
+    if (description) description.textContent = error.message || 'Could not connect to Google Sheets.';
     emptyState.classList.remove('hidden');
   }
 }
 
-searchInput.addEventListener('input', render);
+if (searchInput) searchInput.addEventListener('input', render);
 initialize();
