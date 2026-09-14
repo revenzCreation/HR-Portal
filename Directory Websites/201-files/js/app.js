@@ -130,11 +130,11 @@ async function initialize() {
 
   try {
     const apiUrl = window.HR_PORTAL_SHEETS?.getApiUrl?.() || window.HR_PORTAL_API_URL;
-    if (!apiUrl || !/^https?:\/\//i.test(apiUrl)) {
+    if (!apiUrl || !/^(?:https?:\/\/|\/|\.\/|\.\.\/)/i.test(apiUrl)) {
       throw new Error('The employee directory API URL is not configured.');
     }
 
-    const response = await fetch(`${apiUrl}?action=201-list`, {
+    const response = await fetch(`${apiUrl}${apiUrl.includes('?') ? '&' : '?'}action=201-list`, {
       cache: 'no-store',
       credentials: 'omit'
     });

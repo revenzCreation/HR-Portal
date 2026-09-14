@@ -1,7 +1,7 @@
 ﻿const getAppsScriptUrl = () => {
   const configuredUrl = window.HR_PORTAL_SHEETS?.getApiUrl?.() || window.HR_PORTAL_API_URL || '';
-  if (!/^https?:\/\//i.test(configuredUrl)) {
-    throw new Error('The Google Apps Script deployment URL is not configured.');
+  if (!configuredUrl || !/^(?:https?:\/\/|\/|\.\/|\.\.\/)/i.test(configuredUrl)) {
+    throw new Error('The Sheets API URL is not configured.');
   }
   return configuredUrl;
 };
