@@ -1,6 +1,6 @@
 (function () {
   const DEFAULT_SAME_ORIGIN_PATH = '/api/sheets';
-  const DEFAULT_UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbz2pEc6aCqKnzXIdiPQZBH6lc6X9TUZewPmS2RfuuSTh9UKSERrakfcH13OrlsrCcH9Zw/exec';
+  const DEFAULT_UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbxnkEWARrIzoTjJcbUPFWhYX6fa8yCQzUk90oIHW3cmluad2prCNg-zSkXWugnrwSIaSA/exec';
   const configuredUrl = (typeof window !== 'undefined' && (window.HR_PORTAL_API_URL || window.HR_PORTAL_SHEETS?.getApiUrl?.())) || DEFAULT_SAME_ORIGIN_PATH;
 
   window.HR_PORTAL_API_URL = configuredUrl;

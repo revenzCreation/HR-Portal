@@ -1,4 +1,4 @@
-const UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbz2pEc6aCqKnzXIdiPQZBH6lc6X9TUZewPmS2RfuuSTh9UKSERrakfcH13OrlsrCcH9Zw/exec';
+const UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbxnkEWARrIzoTjJcbUPFWhYX6fa8yCQzUk90oIHW3cmluad2prCNg-zSkXWugnrwSIaSA/exec';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

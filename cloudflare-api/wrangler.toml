@@ -3,4 +3,4 @@ main = "src/index.js"
 compatibility_date = "2025-09-14"
 
 [vars]
-UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbz2pEc6aCqKnzXIdiPQZBH6lc6X9TUZewPmS2RfuuSTh9UKSERrakfcH13OrlsrCcH9Zw/exec'
+UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbxnkEWARrIzoTjJcbUPFWhYX6fa8yCQzUk90oIHW3cmluad2prCNg-zSkXWugnrwSIaSA/exec'
