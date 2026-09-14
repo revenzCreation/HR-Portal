@@ -2,7 +2,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzw10235KTU6EvGNRVtBazN
 
 const form = document.getElementById('applicantForm');
 const statusBox = document.getElementById('statusBox');
-const tableBody = document.getElementById('applicantTableBody');
+const applicantList = document.getElementById('applicantList');
 const resumeUploadBox = document.getElementById('resumeUploadBox');
 const resumeInput = document.getElementById('resumeInput');
 const resumePreview = document.getElementById('resumePreview');
@@ -52,7 +52,7 @@ async function handleResumeSelection(file) {
     mimeType: file.type || 'application/octet-stream'
   };
   resumeName.textContent = file.name;
-  resumePreview.style.display = 'inline-flex';
+  resumePreview.style.display = 'flex';
 }
 
 resumeUploadBox.addEventListener('click', () => resumeInput.click());
@@ -64,14 +64,14 @@ resumeInput.addEventListener('change', async (event) => {
 ['dragenter', 'dragover'].forEach(type => {
   resumeUploadBox.addEventListener(type, (event) => {
     event.preventDefault();
-    resumeUploadBox.style.borderColor = '#2d6ea5';
+    resumeUploadBox.style.borderColor = '#ed655c';
   });
 });
 
 ['dragleave', 'drop'].forEach(type => {
   resumeUploadBox.addEventListener(type, (event) => {
     event.preventDefault();
-    resumeUploadBox.style.borderColor = '#dfe7f3';
+    resumeUploadBox.style.borderColor = 'rgba(244, 240, 232, 0.14)';
   });
 });
 
@@ -108,7 +108,7 @@ form.addEventListener('submit', async (event) => {
   }
 
   try {
-    const result = await request({
+    await request({
       method: 'POST',
       body: JSON.stringify({ action: 'save-applicant', record: payload })
     });
@@ -119,7 +119,6 @@ form.addEventListener('submit', async (event) => {
     resumePreview.style.display = 'none';
     resumeName.textContent = '';
     renderApplicants();
-    console.log('Applicant saved:', result.record);
   } catch (error) {
     showStatus(error.message || 'Something went wrong while submitting your application.', 'error');
   }
@@ -129,20 +128,20 @@ async function renderApplicants() {
   try {
     const result = await request({ method: 'GET' }, '?action=applicant-list');
     const records = result.records || [];
+
     if (!Array.isArray(records) || records.length === 0) {
-      tableBody.innerHTML = '<tr><td colspan="3" class="empty">No applicants yet.</td></tr>';
+      applicantList.innerHTML = '<li><span class="empty-line">No applicants yet.</span></li>';
       return;
     }
 
-    tableBody.innerHTML = records.slice(0, 8).map(record => `
-      <tr>
-        <td>${record.fullName || '—'}</td>
-        <td>${record.positionApplied || '—'}</td>
-        <td><span class="badge">${record.status || 'New'}</span></td>
-      </tr>
+    applicantList.innerHTML = records.slice(0, 6).map(record => `
+      <li>
+        <strong>${record.fullName || 'Applicant'}</strong>
+        <span>${record.positionApplied || 'Role pending'} · <span class="badge">${record.status || 'New'}</span></span>
+      </li>
     `).join('');
   } catch (error) {
-    tableBody.innerHTML = '<tr><td colspan="3" class="empty">Unable to load applicants.</td></tr>';
+    applicantList.innerHTML = '<li><span class="empty-line">Unable to load applicants.</span></li>';
   }
 }
 
