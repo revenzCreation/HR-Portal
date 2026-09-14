@@ -19,20 +19,23 @@ function jsonResponse(body, status = 200) {
 
 async function forwardToSheets(request) {
   const url = new URL(request.url);
-  const upstream = new URL(UPSTREAM_URL);
+  const bodyText = request.method === 'GET' || request.method === 'HEAD' ? null : await request.text();
 
   const forwardedHeaders = new Headers();
   for (const [key, value] of request.headers.entries()) {
     const lower = key.toLowerCase();
-    if (lower === 'host' || lower === 'content-length') continue;
-    if (lower === 'origin') continue;
+    if (lower === 'host' || lower === 'origin') continue;
     forwardedHeaders.set(key, value);
+  }
+
+  if (bodyText !== null) {
+    forwardedHeaders.set('Content-Length', String(new TextEncoder().encode(bodyText).length));
   }
 
   const init = {
     method: request.method,
     headers: forwardedHeaders,
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : await request.text()
+    body: bodyText === null ? undefined : bodyText
   };
 
   const upstreamResponse = await fetch(UPSTREAM_URL + url.search, init);
