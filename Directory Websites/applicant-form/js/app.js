@@ -1,4 +1,4 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbzw10235KTU6EvGNRVtBazNQayZrBLWh5UwIWl7wsJjykh4X1dfifZcr57no_d3tN5-qw/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzMtnoAr3Y8Y8JNsWcUw_Lyv1-lEU_9-QlVExhpqBhHUjseiUz97wyxD6fCnvsRSmrT/exec';
 
 const form = document.getElementById('applicantForm');
 const statusBox = document.getElementById('statusBox');
