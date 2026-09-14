@@ -1,0 +1,10 @@
+name = "hr-portal-fresh"
+compatibility_date = "2024-06-01"
+
+[vars]
+UPSTREAM_URL = "https://script.google.com/macros/s/AKfycbz2pEc6aCqKnzXIdiPQZBH6lc6X9TUZewPmS2RfuuSTh9UKSERrakfcH13OrlsrCcH9Zw/exec"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hr-portal-local"
+database_id = "local"

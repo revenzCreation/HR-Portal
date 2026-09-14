@@ -1,0 +1,14 @@
+{
+  "name": "hr-portal-fresh",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx wrangler pages dev public --compatibility-date=2024-06-01 --port 8787",
+    "deploy": "npx wrangler pages deploy public",
+    "check": "node --check public/js/api-config.js && node --check public/js/app.js && node --check functions/api/sheets.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.109.0"
+  }
+}

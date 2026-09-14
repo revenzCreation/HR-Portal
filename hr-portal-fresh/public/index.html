@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Starkson HR Portal</title>
+    <link rel="stylesheet" href="/css/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="logo">S</div>
+        <div>
+          <p class="eyebrow">Human Resources</p>
+          <h1>Starkson HR Portal</h1>
+        </div>
+      </div>
+      <nav class="nav">
+        <a href="#overview">Overview</a>
+        <a href="#referrals">Referrals</a>
+        <a href="#mrf">MRF</a>
+        <a href="#files">201 Files</a>
+      </nav>
+    </header>
+
+    <main class="page-shell">
+      <section class="hero" id="overview">
+        <div>
+          <p class="eyebrow">Single source of truth</p>
+          <h2>HR operations powered by one Google Sheet.</h2>
+          <p>
+            This fresh portal brings the referral pipeline, manpower tracking and employee file access into one
+            streamlined deployment.
+          </p>
+          <div class="cta-row">
+            <a class="button primary" href="#referrals">Submit referral</a>
+            <a class="button secondary" href="#mrf">Open MRF</a>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="stat">
+            <span>Portal</span>
+            <strong>Single Deploy</strong>
+          </div>
+          <div class="stat">
+            <span>Data</span>
+            <strong>Google Sheet</strong>
+          </div>
+          <div class="stat">
+            <span>Access</span>
+            <strong>Same-origin API</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="referrals">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Referral Portal</p>
+            <h3>Employee referral intake</h3>
+          </div>
+          <button id="refreshRecords" class="button secondary" type="button">Refresh</button>
+        </div>
+
+        <div class="two-column">
+          <form id="referralForm" class="stack-form">
+            <label>
+              Full name
+              <input name="name" type="text" required />
+            </label>
+            <label>
+              Department
+              <input name="department" type="text" required />
+            </label>
+            <label>
+              Candidate email
+              <input name="email" type="email" required />
+            </label>
+            <label>
+              Status
+              <select name="status">
+                <option value="Pending">Pending</option>
+                <option value="Reviewed">Reviewed</option>
+                <option value="Approved">Approved</option>
+              </select>
+            </label>
+            <button class="button primary" type="submit">Save referral</button>
+          </form>
+
+          <div class="table-wrap">
+            <table id="recordsTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th>Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colspan="4">Loading records...</td>
+                </tr>
+              </tbody>
+            </table>
+            <div id="status" class="status" aria-live="polite"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="mrf">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">MRF Tracking</p>
+            <h3>Manpower request workflow</h3>
+          </div>
+        </div>
+
+        <div class="card-grid">
+          <article class="mini-card">
+            <span>Open Requests</span>
+            <strong>12</strong>
+          </article>
+          <article class="mini-card">
+            <span>In Review</span>
+            <strong>4</strong>
+          </article>
+          <article class="mini-card">
+            <span>Approved</span>
+            <strong>8</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel" id="files">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">201 Files</p>
+            <h3>Employee documents</h3>
+          </div>
+        </div>
+
+        <div class="info-box">
+          Employee file list and related document access can be connected to the same Google Sheet-backed API and Drive integration.
+        </div>
+      </section>
+    </main>
+
+    <script src="/js/api-config.js"></script>
+    <script src="/js/app.js"></script>
+  </body>
+</html>
