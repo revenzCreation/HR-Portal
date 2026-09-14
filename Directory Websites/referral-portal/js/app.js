@@ -444,3 +444,66 @@ if (form) {
     }
   });
 }
+
+if (applicantForm) {
+  applicantForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const applicantStatus = document.getElementById('applicantStatusMessage');
+    const values = {
+      fullName: document.getElementById('applicantName')?.value.trim() || '',
+      email: document.getElementById('applicantEmail')?.value.trim() || '',
+      phone: document.getElementById('applicantPhone')?.value.trim() || '',
+      position: document.getElementById('applicantPosition')?.value.trim() || '',
+      department: document.getElementById('applicantDepartment')?.value.trim() || '',
+      source: document.getElementById('applicantSource')?.value.trim() || '',
+      linkedin: document.getElementById('applicantLinkedIn')?.value.trim() || '',
+      notes: document.getElementById('applicantNotes')?.value.trim() || '',
+      status: 'New Applicant'
+    };
+
+    if (!values.fullName || !values.email || !values.phone || !values.position || !values.department) {
+      if (applicantStatus) {
+        applicantStatus.textContent = 'Please complete all required fields before submitting.';
+        applicantStatus.className = 'status-box error';
+      }
+      return;
+    }
+
+    try {
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'applicant-save', applicant: values }),
+        headers: { 'Content-Type': 'text/plain' }
+      });
+
+      const text = await response.text();
+      if (!response.ok) {
+        throw new Error(text || 'Applicant submission failed');
+      }
+
+      applicantForm.reset();
+      if (applicantStatus) {
+        applicantStatus.textContent = 'Application submitted successfully. HR will review your details soon.';
+        applicantStatus.className = 'status-box success';
+      }
+    } catch (error) {
+      if (applicantStatus) {
+        applicantStatus.textContent = error.message || 'Could not submit applicant form. Please try again.';
+        applicantStatus.className = 'status-box error';
+      }
+    }
+  });
+}
+
+const applicantResetBtn = document.getElementById('applicantResetBtn');
+if (applicantResetBtn) {
+  applicantResetBtn.addEventListener('click', () => {
+    if (applicantForm) applicantForm.reset();
+    const applicantStatus = document.getElementById('applicantStatusMessage');
+    if (applicantStatus) {
+      applicantStatus.textContent = '';
+      applicantStatus.className = 'status-box hidden';
+    }
+  });
+}
