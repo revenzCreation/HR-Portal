@@ -31,9 +31,14 @@
 
         <p>Submit your recommendation below. Our recruitment team will review the profile and reach out directly within five business days.</p>
         
-        <button id="startReferralBtn" class="primary-btn">
-          Start a Referral
-        </button>
+        <div class="cta-row">
+          <button id="startReferralBtn" class="primary-btn">
+            Start a Referral
+          </button>
+          <button id="startApplicantBtn" class="secondary-btn" type="button">
+            Applicant Form
+          </button>
+        </div>
       </div>
     </div>
   </main>
@@ -211,6 +216,70 @@
       </form>
 
       <div id="statusMessage" class="status-box hidden" aria-live="polite"></div>
+    </div>
+  </main>
+
+  <main id="applicantView" class="view hidden">
+    <div class="form-card">
+      <header class="form-header">
+        <button id="applicantBackBtn" class="back-link" type="button">&larr; Return to Overview</button>
+        <div class="brand-mini">
+          <span class="brand-name">STARKSON</span> HR PORTAL
+        </div>
+        <h1>Applicant Information Form</h1>
+      </header>
+
+      <form id="applicantForm" novalidate>
+        <div class="form-group">
+          <label for="applicantName">Full name <span class="req">*</span></label>
+          <input type="text" id="applicantName" name="applicantName" placeholder="e.g. Maria Santos" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="applicantEmail">Email <span class="req">*</span></label>
+            <input type="email" id="applicantEmail" name="applicantEmail" placeholder="name@gmail.com" required>
+          </div>
+          <div class="form-group">
+            <label for="applicantPhone">Phone <span class="req">*</span></label>
+            <input type="tel" id="applicantPhone" name="applicantPhone" placeholder="09XX XXX XXXX" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="applicantPosition">Position applying for <span class="req">*</span></label>
+            <input type="text" id="applicantPosition" name="applicantPosition" placeholder="e.g. Production Operator" required>
+          </div>
+          <div class="form-group">
+            <label for="applicantDepartment">Department <span class="req">*</span></label>
+            <input type="text" id="applicantDepartment" name="applicantDepartment" placeholder="e.g. Operations" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="applicantSource">How did you hear about this opportunity? <span class="optional">(optional)</span></label>
+            <input type="text" id="applicantSource" name="applicantSource" placeholder="e.g. Facebook, Referral, Job Fair">
+          </div>
+          <div class="form-group">
+            <label for="applicantLinkedIn">LinkedIn / portfolio <span class="optional">(optional)</span></label>
+            <input type="url" id="applicantLinkedIn" name="applicantLinkedIn" placeholder="https://linkedin.com/in/yourprofile">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="applicantNotes">Tell us a little about yourself <span class="optional">(optional)</span></label>
+          <textarea id="applicantNotes" name="applicantNotes" rows="4" placeholder="Share your background, strengths, or relevant experience..."></textarea>
+        </div>
+
+        <div class="form-row step-actions">
+          <button type="button" class="secondary-btn" id="applicantResetBtn">Clear</button>
+          <button type="submit" class="primary-btn">Submit Application</button>
+        </div>
+      </form>
+
+      <div id="applicantStatusMessage" class="status-box hidden" aria-live="polite"></div>
     </div>
   </main>
 

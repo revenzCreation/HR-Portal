@@ -1,10 +1,14 @@
-﻿const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMtnoAr3Y8Y8JNsWcUw_Lyv1-lEU_9-QlVExhpqBhHUjseiUz97wyxD6fCnvsRSmrT/exec';
+﻿const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwUqPvhkgiMg918ap3LbHUkZho9PVubf0n6k9-lF8VbE3-Jhq7W0Wo633KKQyGuK66Bmw/exec';
 const form = document.getElementById('referralForm');
+const applicantForm = document.getElementById('applicantForm');
 
 const landingView = document.getElementById('landingView');
 const formView = document.getElementById('formView');
+const applicantView = document.getElementById('applicantView');
 const startReferralBtn = document.getElementById('startReferralBtn');
+const startApplicantBtn = document.getElementById('startApplicantBtn');
 const backBtn = document.getElementById('backBtn');
+const applicantBackBtn = document.getElementById('applicantBackBtn');
 const deptSelect = document.getElementById('referrerDepartment');
 const otherDeptGroup = document.getElementById('otherDeptGroup');
 const otherDeptInput = document.getElementById('otherDepartment');
@@ -65,6 +69,26 @@ if (startReferralBtn) {
 if (backBtn) {
   backBtn.addEventListener('click', () => {
     if (formView) formView.classList.replace('active', 'hidden');
+    setTimeout(() => {
+      if (landingView) landingView.classList.replace('hidden', 'active');
+    }, 150);
+  });
+}
+
+if (startApplicantBtn) {
+  startApplicantBtn.addEventListener('click', () => {
+    if (landingView) landingView.classList.replace('active', 'hidden');
+    setTimeout(() => {
+      if (applicantView) applicantView.classList.replace('hidden', 'active');
+      const applicantName = document.getElementById('applicantName');
+      if (applicantName) applicantName.focus();
+    }, 150);
+  });
+}
+
+if (applicantBackBtn) {
+  applicantBackBtn.addEventListener('click', () => {
+    if (applicantView) applicantView.classList.replace('active', 'hidden');
     setTimeout(() => {
       if (landingView) landingView.classList.replace('hidden', 'active');
     }, 150);
