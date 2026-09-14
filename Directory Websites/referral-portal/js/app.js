@@ -1,4 +1,11 @@
-﻿const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz2pEc6aCqKnzXIdiPQZBH6lc6X9TUZewPmS2RfuuSTh9UKSERrakfcH13OrlsrCcH9Zw/exec';
+﻿const getAppsScriptUrl = () => {
+  const configuredUrl = window.HR_PORTAL_SHEETS?.getApiUrl?.() || window.HR_PORTAL_API_URL || '';
+  if (!/^https?:\/\//i.test(configuredUrl)) {
+    throw new Error('The Google Apps Script deployment URL is not configured.');
+  }
+  return configuredUrl;
+};
+
 const form = document.getElementById('referralForm');
 const applicantForm = document.getElementById('applicantForm');
 
@@ -394,10 +401,12 @@ if (form) {
       };
 
       try {
-        await fetch(APPS_SCRIPT_URL, {
+        await fetch(getAppsScriptUrl(), {
           method: 'POST',
           body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' }
+          cache: 'no-store',
+          credentials: 'omit',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
         });
 
         localStorage.removeItem('referralDraft');
@@ -471,10 +480,12 @@ if (applicantForm) {
     }
 
     try {
-      const response = await fetch(APPS_SCRIPT_URL, {
+      const response = await fetch(getAppsScriptUrl(), {
         method: 'POST',
         body: JSON.stringify({ action: 'applicant-save', applicant: values }),
-        headers: { 'Content-Type': 'text/plain' }
+        cache: 'no-store',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
       });
 
       const text = await response.text();
