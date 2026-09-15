@@ -1,10 +1,11 @@
+// New script: only the new MRF sheet and the applicant resume folder stay connected here.
 const CONFIG = {
-  spreadsheetId: '',
-  sheetName: 'MRF Requests',
+  spreadsheetId: '195-mJN-MRhswL6DQl3nIeXfYxmEAi7ufQd1ebrIXbII',
+  sheetName: 'MRF',
   applicantsSheetName: 'Applicants',
-  driveFolderId: '',
-  driveFolderName: 'MRF Monitor Uploads',
-  applicantFilesDriveFolderId: ''
+  driveFolderId: '1m43NthL-cWmxjuC3iaYe9Gkxf1VHJrlq',
+  driveFolderName: 'MRF_MONITORING_DATABASE',
+  applicantFilesDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl'
 };
 
 const HEADERS = [
@@ -26,17 +27,17 @@ const SHEET_FONT_FAMILY = 'Arial';
 const SHEET_FONT_SIZE = 10;
 
 function getSpreadsheet() {
-  if (CONFIG.spreadsheetId) {
-    return SpreadsheetApp.openById(CONFIG.spreadsheetId);
+  if (!CONFIG.spreadsheetId) {
+    throw new Error('The new spreadsheet ID is not configured.');
   }
-  return SpreadsheetApp.getActiveSpreadsheet();
+  return SpreadsheetApp.openById(CONFIG.spreadsheetId);
 }
 
 function doGet(e) {
   try {
     applyWorkbookDefaults();
     const action = (e && e.parameter && e.parameter.action) || 'list';
-    if (action === 'applicant-list') return json({ ok: true, records: readApplicants() });
+    if (action === 'applicant-list' || action === 'applicants-list') return json({ ok: true, records: readApplicants() });
     if (action !== 'list') return json({ ok: false, error: 'Unknown action' });
     return json({ ok: true, records: readRecords() });
   } catch (error) {
@@ -58,7 +59,9 @@ function doPost(e) {
       deleteRecord(body.id);
       return json({ ok: true });
     }
-    if (body.action === 'save-applicant') return json({ ok: true, record: saveApplicant(body.record) });
+    if (body.action === 'save-applicant' || body.action === 'applicant-save') {
+      return json({ ok: true, record: saveApplicant(body.record || body.applicant || body) });
+    }
     if (body.action === 'delete-applicant') {
       deleteApplicant(body.id);
       return json({ ok: true });
@@ -296,8 +299,8 @@ function getApplicantFolder() {
   if (CONFIG.applicantFilesDriveFolderId) {
     return DriveApp.getFolderById(CONFIG.applicantFilesDriveFolderId);
   }
-  const folders = DriveApp.getFoldersByName('Applicant Resumes');
-  return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder('Applicant Resumes');
+  const folders = DriveApp.getFoldersByName('Candidate Resume');
+  return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder('Candidate Resume');
 }
 
 function applySheetDefaults(sheet, columnCount) {
@@ -307,7 +310,8 @@ function applySheetDefaults(sheet, columnCount) {
 }
 
 function applyWorkbookDefaults() {
-  getSpreadsheet().getSheets().forEach(sheet => {
+  const spreadsheet = getSpreadsheet();
+  spreadsheet.getSheets().forEach(sheet => {
     const range = sheet.getDataRange();
     range.setFontFamily(SHEET_FONT_FAMILY).setFontSize(SHEET_FONT_SIZE);
   });

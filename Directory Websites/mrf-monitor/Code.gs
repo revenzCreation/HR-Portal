@@ -1,11 +1,11 @@
+  // Legacy script: this project is still bound to the existing live spreadsheet.
+  // No spreadsheetId is required here unless you intentionally detach it.
   const CONFIG = {
     sheetName: 'MRF',
     sheetAliases: ['MRF Requests', 'MRF', 'Manpower Requests', 'MRF Monitor'],
     applicantSheetName: 'Applicants',
     applicantSheetAliases: ['Applicants', 'Applicant Forms', 'Applications', 'Applicant Applications'],
     employeeFilesSheetName: '201 Files',
-    driveFolderId: '1m43NthL-cWmxjuC3iaYe9Gkxf1VHJrlq',
-    driveFolderName: 'MRF Monitor Uploads',
     employeeFilesDriveFolderId: '1wroebNAIgVf6oMVa1EMm6gZ_-f6dCotL'
   };
 
