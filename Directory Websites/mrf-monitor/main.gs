@@ -1,12 +1,15 @@
-  // Legacy script: this project is still bound to the existing live spreadsheet.
-  // No spreadsheetId is required here unless you intentionally detach it.
   const CONFIG = {
+    spreadsheetId: '1utH1iEiYiGOCZjAQ4_z3Mb3KdJcSDUHDyMVMnbNbTSA',
     sheetName: 'MRF',
     sheetAliases: ['MRF Requests', 'MRF', 'Manpower Requests', 'MRF Monitor'],
     applicantSheetName: 'Applicants',
     applicantSheetAliases: ['Applicants', 'Applicant Forms', 'Applications', 'Applicant Applications'],
+    referralSheetName: 'Referrals',
     employeeFilesSheetName: '201 Files',
-    employeeFilesDriveFolderId: '1wroebNAIgVf6oMVa1EMm6gZ_-f6dCotL'
+    referralDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl',
+    referralDriveFolderName: 'CANDIDATE_RESUMES',
+    employeeFilesDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl',
+    employeeFilesDriveFolderName: 'SCANNED_FILES_OJT'
   };
 
   const HEADERS = [
@@ -53,6 +56,13 @@
     const number = Number(raw);
     if (Number.isFinite(number)) return String(number).padStart(4, '0');
     return raw.padStart(4, '0');
+  }
+
+  function getSpreadsheet() {
+    if (!CONFIG.spreadsheetId) {
+      throw new Error('The legacy spreadsheet ID is not configured.');
+    }
+    return SpreadsheetApp.openById(CONFIG.spreadsheetId);
   }
 
   function doGet(e) {
@@ -131,20 +141,22 @@
   }
 
   function getReferralFolder() {
-    const folderId = '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl';
-    try {
-      return DriveApp.getFolderById(folderId);
-    } catch (error) {
-      const rootFolder = DriveApp.getRootFolder();
-      const existing = DriveApp.getFoldersByName('Referral Uploads');
-      if (existing.hasNext()) return existing.next();
-      return rootFolder.createFolder('Referral Uploads');
+    if (CONFIG.referralDriveFolderId) {
+      try {
+        return DriveApp.getFolderById(CONFIG.referralDriveFolderId);
+      } catch (error) {
+        // fall through to the named folder matching the configured drive connection
+      }
     }
+    const folderName = CONFIG.referralDriveFolderName || 'CANDIDATE_RESUMES';
+    const existing = DriveApp.getFoldersByName(folderName);
+    if (existing.hasNext()) return existing.next();
+    return DriveApp.getRootFolder().createFolder(folderName);
   }
 
   function getOrCreateReferralSheet() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    let sheet = spreadsheet.getSheetByName('Referrals');
+    const spreadsheet = getSpreadsheet();
+    let sheet = spreadsheet.getSheetByName(CONFIG.referralSheetName || 'Referrals');
     if (!sheet) sheet = spreadsheet.insertSheet('Referrals');
     if (sheet.getLastRow() === 0) sheet.appendRow(DISPLAY_REFERRAL_HEADERS);
     sheet.getRange(1, 1, 1, REFERRAL_HEADERS.length)
@@ -171,7 +183,7 @@
   }
 
   function getOrCreateApplicantSheet() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const spreadsheet = getSpreadsheet();
     let sheet = findSheetByAliases(spreadsheet, CONFIG.applicantSheetAliases);
     if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.applicantSheetName);
     if (sheet.getLastRow() === 0) sheet.appendRow(DISPLAY_APPLICANT_HEADERS);
@@ -189,7 +201,7 @@
   }
 
   function getSheet() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const spreadsheet = getSpreadsheet();
     let sheet = findSheetByAliases(spreadsheet, CONFIG.sheetAliases);
     if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.sheetName);
     if (sheet.getLastRow() === 0) sheet.appendRow(DISPLAY_HEADERS);
@@ -301,7 +313,7 @@
   }
 
   function getEmployeeFilesSheet() {
-    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    const spreadsheet = getSpreadsheet();
     let sheet = spreadsheet.getSheetByName(CONFIG.employeeFilesSheetName);
     if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.employeeFilesSheetName);
     if (sheet.getLastRow() === 0) sheet.appendRow(EMPLOYEE_FILE_HEADERS);
@@ -340,9 +352,15 @@
 
   function getEmployeeFilesFolder() {
     if (CONFIG.employeeFilesDriveFolderId) {
-      return DriveApp.getFolderById(CONFIG.employeeFilesDriveFolderId);
+      try {
+        return DriveApp.getFolderById(CONFIG.employeeFilesDriveFolderId);
+      } catch (error) {
+        // fall through to the named folder matching the configured drive connection
+      }
     }
-    throw new Error('The 201 Files Drive folder is not configured');
+    const folderName = CONFIG.employeeFilesDriveFolderName || 'SCANNED_FILES_OJT';
+    const folders = DriveApp.getFoldersByName(folderName);
+    return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder(folderName);
   }
 
   function saveRecord(input) {
@@ -461,7 +479,7 @@
   }
 
   function applyWorkbookDefaults() {
-    SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(sheet => {
+    getSpreadsheet().getSheets().forEach(sheet => {
       const range = sheet.getDataRange();
       range.setFontFamily(SHEET_FONT_FAMILY).setFontSize(SHEET_FONT_SIZE);
     });

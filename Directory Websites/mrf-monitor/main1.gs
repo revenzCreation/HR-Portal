@@ -5,7 +5,8 @@ const CONFIG = {
   applicantsSheetName: 'Applicants',
   driveFolderId: '1m43NthL-cWmxjuC3iaYe9Gkxf1VHJrlq',
   driveFolderName: 'MRF_MONITORING_DATABASE',
-  applicantFilesDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl'
+  applicantFilesDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl',
+  applicantFilesDriveFolderName: 'CANDIDATE_RESUMES'
 };
 
 const HEADERS = [
@@ -339,10 +340,15 @@ function deleteApplicant(id) {
 
 function getApplicantFolder() {
   if (CONFIG.applicantFilesDriveFolderId) {
-    return DriveApp.getFolderById(CONFIG.applicantFilesDriveFolderId);
+    try {
+      return DriveApp.getFolderById(CONFIG.applicantFilesDriveFolderId);
+    } catch (error) {
+      // fall through to the named folder matching the configured drive connection
+    }
   }
-  const folders = DriveApp.getFoldersByName('Candidate Resume');
-  return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder('Candidate Resume');
+  const folderName = CONFIG.applicantFilesDriveFolderName || 'CANDIDATE_RESUMES';
+  const folders = DriveApp.getFoldersByName(folderName);
+  return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder(folderName);
 }
 
 function applySheetDefaults(sheet, columnCount) {
