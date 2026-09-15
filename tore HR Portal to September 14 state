@@ -1,0 +1,156 @@
+[1mdiff --git a/Directory Websites/201-files/js/config.js b/Directory Websites/201-files/js/config.js[m
+[1mindex 344a030..9602e8f 100644[m
+[1m--- a/Directory Websites/201-files/js/config.js[m	
+[1m+++ b/Directory Websites/201-files/js/config.js[m	
+[36m@@ -1 +1 @@[m
+[31m-window.HR_PORTAL_API_URL = 'https://script.google.com/macros/s/AKfycbzMtnoAr3Y8Y8JNsWcUw_Lyv1-lEU_9-QlVExhpqBhHUjseiUz97wyxD6fCnvsRSmrT/exec';[m
+[32m+[m[32mwindow.HR_PORTAL_API_URL = window.HR_PORTAL_API_URL ?? window.HR_PORTAL_SHEETS?.getApiUrl?.() ?? '';[m
+[1mdiff --git a/Directory Websites/applicant-form/index.html b/Directory Websites/applicant-form/index.html[m
+[1mindex ccc1227..099b8b2 100644[m
+[1m--- a/Directory Websites/applicant-form/index.html[m	
+[1m+++ b/Directory Websites/applicant-form/index.html[m	
+[36m@@ -31,7 +31,7 @@[m
+       <div class="form-layout">[m
+         <section class="panel form-panel">[m
+           <div class="form-header">[m
+[31m-            <h2>Applicant Intake</h2>[m
+[32m+[m[32m            <h2>Apply for a role</h2>[m
+           </div>[m
+           <p class="form-subtitle">Submit your profile and supporting details. This form is accessible to both applicants and HR and records to the shared Applicants tab.</p>[m
+ [m
+[1mdiff --git a/Directory Websites/applicant-form/js/app.js b/Directory Websites/applicant-form/js/app.js[m
+[1mindex 95b26f6..26d293f 100644[m
+[1m--- a/Directory Websites/applicant-form/js/app.js[m	
+[1m+++ b/Directory Websites/applicant-form/js/app.js[m	
+[36m@@ -21,9 +21,7 @@[m [masync function request(options = {}, extraUrl = '') {[m
+ [m
+   const raw = await response.text();[m
+   let result = {};[m
+[31m-  try { result = raw ? JSON.parse(raw) : {}; } catch (error) {[m
+[31m-    throw new Error(`Invalid API response (${response.status}).`);[m
+[31m-  }[m
+[32m+[m[32m  try { result = raw ? JSON.parse(raw) : {}; } catch (error) { throw new Error(`Invalid API response (${response.status}).`); }[m
+ [m
+   if (!response.ok || result.ok === false) {[m
+     throw new Error(result && result.error ? result.error : 'Request failed');[m
+[36m@@ -32,34 +30,6 @@[m [masync function request(options = {}, extraUrl = '') {[m
+   return result;[m
+ }[m
+ [m
+[31m-function getFormRecord() {[m
+[31m-  return {[m
+[31m-    id: 'APP-' + Date.now(),[m
+[31m-    fullName: document.getElementById('fullName').value.trim(),[m
+[31m-    email: document.getElementById('email').value.trim(),[m
+[31m-    phone: document.getElementById('phone').value.trim(),[m
+[31m-    positionApplied: document.getElementById('positionApplied').value.trim(),[m
+[31m-    department: document.getElementById('department').value.trim(),[m
+[31m-    source: document.getElementById('source').value,[m
+[31m-    availabilityDate: document.getElementById('availabilityDate').value,[m
+[31m-    status: document.getElementById('status').value || 'New',[m
+[31m-    remarks: document.getElementById('remarks').value.trim(),[m
+[31m-    createdAt: Date.now(),[m
+[31m-    updatedAt: Date.now(),[m
+[31m-    resumeData: uploadedResume ? uploadedResume.dataUrl : '',[m
+[31m-    resumeFileName: uploadedResume ? uploadedResume.name : '',[m
+[31m-    resumeMimeType: uploadedResume ? uploadedResume.mimeType : '',[m
+[31m-    resumeLink: ''[m
+[31m-  };[m
+[31m-}[m
+[31m-[m
+[31m-function validateForm(record) {[m
+[31m-  if (!record.fullName || !record.email || !record.phone || !record.positionApplied || !record.department || !record.source) {[m
+[31m-    throw new Error('Please complete all required fields.');[m
+[31m-  }[m
+[31m-  return true;[m
+[31m-}[m
+[31m-[m
+ function showStatus(message, type = 'success') {[m
+   statusBox.className = 'status-box ' + type;[m
+   statusBox.textContent = message;[m
+[36m@@ -113,10 +83,31 @@[m [mresumeUploadBox.addEventListener('drop', async (event) => {[m
+ form.addEventListener('submit', async (event) => {[m
+   event.preventDefault();[m
+ [m
+[31m-  try {[m
+[31m-    const payload = getFormRecord();[m
+[31m-    validateForm(payload);[m
+[32m+[m[32m  const payload = {[m
+[32m+[m[32m    id: 'APP-' + Date.now(),[m
+[32m+[m[32m    fullName: document.getElementById('fullName').value.trim(),[m
+[32m+[m[32m    email: document.getElementById('email').value.trim(),[m
+[32m+[m[32m    phone: document.getElementById('phone').value.trim(),[m
+[32m+[m[32m    positionApplied: document.getElementById('positionApplied').value.trim(),[m
+[32m+[m[32m    department: document.getElementById('department').value.trim(),[m
+[32m+[m[32m    source: document.getElementById('source').value,[m
+[32m+[m[32m    availabilityDate: document.getElementById('availabilityDate').value,[m
+[32m+[m[32m    status: document.getElementById('status').value || 'New',[m
+[32m+[m[32m    remarks: document.getElementById('remarks').value.trim(),[m
+[32m+[m[32m    createdAt: Date.now(),[m
+[32m+[m[32m    updatedAt: Date.now(),[m
+[32m+[m[32m    resumeData: uploadedResume ? uploadedResume.dataUrl : '',[m
+[32m+[m[32m    resumeFileName: uploadedResume ? uploadedResume.name : '',[m
+[32m+[m[32m    resumeMimeType: uploadedResume ? uploadedResume.mimeType : '',[m
+[32m+[m[32m    resumeLink: ''[m
+[32m+[m[32m  };[m
+ [m
+[32m+[m[32m  if (!payload.fullName || !payload.email || !payload.phone || !payload.positionApplied || !payload.department || !payload.source) {[m
+[32m+[m[32m    showStatus('Please complete all required fields.', 'error');[m
+[32m+[m[32m    return;[m
+[32m+[m[32m  }[m
+[32m+[m
+[32m+[m[32m  try {[m
+     await request({[m
+       method: 'POST',[m
+       body: JSON.stringify({ action: 'save-applicant', record: payload })[m
+[36m@@ -127,20 +118,18 @@[m [mform.addEventListener('submit', async (event) => {[m
+     uploadedResume = null;[m
+     resumePreview.style.display = 'none';[m
+     resumeName.textContent = '';[m
+[31m-    await renderApplicants();[m
+[32m+[m[32m    renderApplicants();[m
+   } catch (error) {[m
+     showStatus(error.message || 'Something went wrong while submitting your application.', 'error');[m
+   }[m
+ });[m
+ [m
+ async function renderApplicants() {[m
+[31m-  if (!applicantList) return;[m
+[31m-[m
+   try {[m
+     const result = await request({ method: 'GET' }, '?action=applicant-list');[m
+[31m-    const records = Array.isArray(result.records) ? result.records : [];[m
+[32m+[m[32m    const records = result.records || [];[m
+ [m
+[31m-    if (!records.length) {[m
+[32m+[m[32m    if (!Array.isArray(records) || records.length === 0) {[m
+       applicantList.innerHTML = '<li><span class="empty-line">No applicants yet.</span></li>';[m
+       return;[m
+     }[m
+[36m@@ -157,7 +146,5 @@[m [masync function renderApplicants() {[m
+ }[m
+ [m
+ (async function init() {[m
+[31m-  if (form) {[m
+[31m-    await renderApplicants();[m
+[31m-  }[m
+[32m+[m[32m  await renderApplicants();[m
+ })();[m
+[1mdiff --git a/Directory Websites/mrf-monitor/js/config.js b/Directory Websites/mrf-monitor/js/config.js[m
+[1mindex 8fdb55b..e677f18 100644[m
+[1m--- a/Directory Websites/mrf-monitor/js/config.js[m	
+[1m+++ b/Directory Websites/mrf-monitor/js/config.js[m	
+[36m@@ -1 +1,3 @@[m
+[31m-export const API_URL = 'https://script.google.com/macros/s/AKfycbzw10235KTU6EvGNRVtBazNQayZrBLWh5UwIWl7wsJjykh4X1dfifZcr57no_d3tN5-qw/exec';[m
+[32m+[m[32mexport const API_URL = typeof window !== 'undefined'[m
+[32m+[m[32m  ? (window.HR_PORTAL_SHEETS?.getApiUrl?.() ?? window.HR_PORTAL_API_URL ?? '')[m
+[32m+[m[32m  : '';[m
+[1mdiff --git a/Directory Websites/mrf-monitor/js/storage.js b/Directory Websites/mrf-monitor/js/storage.js[m
+[1mindex 02febfe..0401aa7 100644[m
+[1m--- a/Directory Websites/mrf-monitor/js/storage.js[m	
+[1m+++ b/Directory Websites/mrf-monitor/js/storage.js[m	
+[36m@@ -1,5 +1,5 @@[m
+ function requireApiUrl() {[m
+[31m-  const configuredUrl = 'https://script.google.com/macros/s/AKfycbzw10235KTU6EvGNRVtBazNQayZrBLWh5UwIWl7wsJjykh4X1dfifZcr57no_d3tN5-qw/exec';[m
+[32m+[m[32m  const configuredUrl = window.HR_PORTAL_SHEETS?.getApiUrl?.() || window.HR_PORTAL_API_URL || '';[m
+ [

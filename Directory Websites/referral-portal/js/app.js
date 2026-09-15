@@ -1,5 +1,5 @@
 ﻿const getAppsScriptUrl = () => {
-  const configuredUrl = 'https://script.google.com/macros/s/AKfycbzMtnoAr3Y8Y8JNsWcUw_Lyv1-lEU_9-QlVExhpqBhHUjseiUz97wyxD6fCnvsRSmrT/exec';
+  const configuredUrl = window.HR_PORTAL_SHEETS?.getApiUrl?.() || window.HR_PORTAL_API_URL || '';
   if (!configuredUrl || !/^(?:https?:\/\/|\/|\.\/|\.\.\/)/i.test(configuredUrl)) {
     throw new Error('The Sheets API URL is not configured.');
   }

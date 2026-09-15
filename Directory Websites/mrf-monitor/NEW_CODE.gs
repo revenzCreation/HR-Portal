@@ -1,12 +1,10 @@
-// New script: only the new MRF sheet and the applicant resume folder stay connected here.
 const CONFIG = {
-  spreadsheetId: '195-mJN-MRhswL6DQl3nIeXfYxmEAi7ufQd1ebrIXbII',
-  sheetName: 'MRF',
+  spreadsheetId: '',
+  sheetName: 'MRF Requests',
   applicantsSheetName: 'Applicants',
-  driveFolderId: '1m43NthL-cWmxjuC3iaYe9Gkxf1VHJrlq',
-  driveFolderName: 'MRF_MONITORING_DATABASE',
-  applicantFilesDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl',
-  applicantFilesDriveFolderName: 'CANDIDATE_RESUMES'
+  driveFolderId: '',
+  driveFolderName: 'MRF Monitor Uploads',
+  applicantFilesDriveFolderId: ''
 };
 
 const HEADERS = [
@@ -25,43 +23,20 @@ const APPLICANT_HEADERS = [
 const DISPLAY_APPLICANT_HEADERS = APPLICANT_HEADERS.map(header => header.replace(/[A-Z]/g, letter => ' ' + letter).toUpperCase());
 
 const SHEET_FONT_FAMILY = 'Arial';
-const SHEET_FONT_SIZE = 9;
-
-function normalizeTextValue(value) {
-  if (value == null) return '';
-  return String(value).trim().toUpperCase();
-}
-
-function normalizeRecordForWrite(record) {
-  const normalized = Object.assign({}, record);
-  Object.keys(normalized).forEach((key) => {
-    if (typeof normalized[key] === 'string') {
-      normalized[key] = normalizeTextValue(normalized[key]);
-    }
-  });
-  return normalized;
-}
-
-function normalizeId(value) {
-  const raw = String(value == null ? '' : value).trim();
-  if (!raw) return '0000';
-  const number = Number(raw);
-  if (Number.isFinite(number)) return String(number).padStart(4, '0');
-  return raw.padStart(4, '0');
-}
+const SHEET_FONT_SIZE = 10;
 
 function getSpreadsheet() {
-  if (!CONFIG.spreadsheetId) {
-    throw new Error('The new spreadsheet ID is not configured.');
+  if (CONFIG.spreadsheetId) {
+    return SpreadsheetApp.openById(CONFIG.spreadsheetId);
   }
-  return SpreadsheetApp.openById(CONFIG.spreadsheetId);
+  return SpreadsheetApp.getActiveSpreadsheet();
 }
 
 function doGet(e) {
   try {
     applyWorkbookDefaults();
     const action = (e && e.parameter && e.parameter.action) || 'list';
-    if (action === 'applicant-list' || action === 'applicants-list') return json({ ok: true, records: readApplicants() });
+    if (action === 'applicant-list') return json({ ok: true, records: readApplicants() });
     if (action !== 'list') return json({ ok: false, error: 'Unknown action' });
     return json({ ok: true, records: readRecords() });
   } catch (error) {
@@ -83,9 +58,7 @@ function doPost(e) {
       deleteRecord(body.id);
       return json({ ok: true });
     }
-    if (body.action === 'save-applicant' || body.action === 'applicant-save') {
-      return json({ ok: true, record: saveApplicant(body.record || body.applicant || body) });
-    }
+    if (body.action === 'save-applicant') return json({ ok: true, record: saveApplicant(body.record) });
     if (body.action === 'delete-applicant') {
       deleteApplicant(body.id);
       return json({ ok: true });
@@ -155,12 +128,11 @@ function saveRecord(input) {
   lock.waitLock(30000);
   try {
     const sheet = getSheet();
-    const record = normalizeRecordForWrite(Object.assign({}, input));
+    const record = Object.assign({}, input);
     delete record.fileData;
     delete record.fileMimeType;
     const existingRow = record.id ? findRow(sheet, record.id) : 0;
     if (!existingRow) record.id = nextRequestId(sheet);
-    record.id = normalizeId(record.id);
 
     if (input.fileData) {
       const folder = getUploadFolder();
@@ -172,12 +144,7 @@ function saveRecord(input) {
       record.fileUrl = file.getUrl();
     }
 
-    const values = HEADERS.map(header => {
-      const value = record[header];
-      if (value == null) return '';
-      if (header === 'id') return normalizeId(value);
-      return normalizeTextValue(value);
-    });
+    const values = HEADERS.map(header => record[header] == null ? '' : record[header]);
     if (existingRow) sheet.getRange(existingRow, 1, 1, HEADERS.length).setValues([values]);
     else sheet.appendRow(values);
 
@@ -250,10 +217,10 @@ function getOrCreateApplicantsSheet() {
 function saveApplicant(data) {
   if (!data || typeof data !== 'object') throw new Error('Applicant data is required');
   const sheet = getOrCreateApplicantsSheet();
-  const record = normalizeRecordForWrite(Object.assign({}, data));
+  const record = Object.assign({}, data);
   const existingRow = record.id ? findApplicantRow(sheet, record.id) : 0;
-  record.id = normalizeId(record.id || createApplicantId());
-  record.status = record.status || 'NEW';
+  record.id = record.id || createApplicantId();
+  record.status = record.status || 'New';
   record.createdAt = Number(record.createdAt) || Date.now();
   record.updatedAt = Date.now();
 
@@ -268,13 +235,7 @@ function saveApplicant(data) {
     record.resumeLink = resumeLink;
   }
 
-  const values = APPLICANT_HEADERS.map(header => {
-    const value = record[header];
-    if (value == null) return '';
-    if (header === 'id') return normalizeId(value);
-    if (header === 'createdAt' || header === 'updatedAt') return value;
-    return normalizeTextValue(value);
-  });
+  const values = APPLICANT_HEADERS.map(header => record[header] == null ? '' : record[header]);
   if (existingRow) sheet.getRange(existingRow, 1, 1, APPLICANT_HEADERS.length).setValues([values]);
   else sheet.appendRow(values);
 
@@ -316,15 +277,8 @@ function findApplicantRow(sheet, id) {
 }
 
 function createApplicantId() {
-  const sheet = getOrCreateApplicantsSheet();
-  const ids = sheet.getLastRow() < 2 ? [] : sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
-  const highest = ids.reduce((max, row) => {
-    const value = String(row[0]).trim();
-    const number = /^\d{1,4}$/.test(value) ? Number(value) : 0;
-    return Math.max(max, number);
-  }, 0);
-  if (highest >= 9999) throw new Error('No four-digit applicant IDs remain');
-  return String(highest + 1).padStart(4, '0');
+  const timestamp = Date.now();
+  return 'APP-' + String(timestamp).slice(-8);
 }
 
 function makeApplicantFileName(id, originalName) {
@@ -340,15 +294,10 @@ function deleteApplicant(id) {
 
 function getApplicantFolder() {
   if (CONFIG.applicantFilesDriveFolderId) {
-    try {
-      return DriveApp.getFolderById(CONFIG.applicantFilesDriveFolderId);
-    } catch (error) {
-      // fall through to the named folder matching the configured drive connection
-    }
+    return DriveApp.getFolderById(CONFIG.applicantFilesDriveFolderId);
   }
-  const folderName = CONFIG.applicantFilesDriveFolderName || 'CANDIDATE_RESUMES';
-  const folders = DriveApp.getFoldersByName(folderName);
-  return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder(folderName);
+  const folders = DriveApp.getFoldersByName('Applicant Resumes');
+  return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder('Applicant Resumes');
 }
 
 function applySheetDefaults(sheet, columnCount) {
@@ -358,8 +307,7 @@ function applySheetDefaults(sheet, columnCount) {
 }
 
 function applyWorkbookDefaults() {
-  const spreadsheet = getSpreadsheet();
-  spreadsheet.getSheets().forEach(sheet => {
+  getSpreadsheet().getSheets().forEach(sheet => {
     const range = sheet.getDataRange();
     range.setFontFamily(SHEET_FONT_FAMILY).setFontSize(SHEET_FONT_SIZE);
   });

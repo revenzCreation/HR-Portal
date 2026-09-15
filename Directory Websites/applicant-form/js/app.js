@@ -21,43 +21,13 @@ async function request(options = {}, extraUrl = '') {
 
   const raw = await response.text();
   let result = {};
-  try { result = raw ? JSON.parse(raw) : {}; } catch (error) {
-    throw new Error(`Invalid API response (${response.status}).`);
-  }
+  try { result = raw ? JSON.parse(raw) : {}; } catch (error) { throw new Error(`Invalid API response (${response.status}).`); }
 
   if (!response.ok || result.ok === false) {
     throw new Error(result && result.error ? result.error : 'Request failed');
   }
 
   return result;
-}
-
-function getFormRecord() {
-  return {
-    id: 'APP-' + Date.now(),
-    fullName: document.getElementById('fullName').value.trim(),
-    email: document.getElementById('email').value.trim(),
-    phone: document.getElementById('phone').value.trim(),
-    positionApplied: document.getElementById('positionApplied').value.trim(),
-    department: document.getElementById('department').value.trim(),
-    source: document.getElementById('source').value,
-    availabilityDate: document.getElementById('availabilityDate').value,
-    status: document.getElementById('status').value || 'New',
-    remarks: document.getElementById('remarks').value.trim(),
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    resumeData: uploadedResume ? uploadedResume.dataUrl : '',
-    resumeFileName: uploadedResume ? uploadedResume.name : '',
-    resumeMimeType: uploadedResume ? uploadedResume.mimeType : '',
-    resumeLink: ''
-  };
-}
-
-function validateForm(record) {
-  if (!record.fullName || !record.email || !record.phone || !record.positionApplied || !record.department || !record.source) {
-    throw new Error('Please complete all required fields.');
-  }
-  return true;
 }
 
 function showStatus(message, type = 'success') {
@@ -113,10 +83,31 @@ resumeUploadBox.addEventListener('drop', async (event) => {
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
 
-  try {
-    const payload = getFormRecord();
-    validateForm(payload);
+  const payload = {
+    id: 'APP-' + Date.now(),
+    fullName: document.getElementById('fullName').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    phone: document.getElementById('phone').value.trim(),
+    positionApplied: document.getElementById('positionApplied').value.trim(),
+    department: document.getElementById('department').value.trim(),
+    source: document.getElementById('source').value,
+    availabilityDate: document.getElementById('availabilityDate').value,
+    status: document.getElementById('status').value || 'New',
+    remarks: document.getElementById('remarks').value.trim(),
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    resumeData: uploadedResume ? uploadedResume.dataUrl : '',
+    resumeFileName: uploadedResume ? uploadedResume.name : '',
+    resumeMimeType: uploadedResume ? uploadedResume.mimeType : '',
+    resumeLink: ''
+  };
 
+  if (!payload.fullName || !payload.email || !payload.phone || !payload.positionApplied || !payload.department || !payload.source) {
+    showStatus('Please complete all required fields.', 'error');
+    return;
+  }
+
+  try {
     await request({
       method: 'POST',
       body: JSON.stringify({ action: 'save-applicant', record: payload })
@@ -127,20 +118,18 @@ form.addEventListener('submit', async (event) => {
     uploadedResume = null;
     resumePreview.style.display = 'none';
     resumeName.textContent = '';
-    await renderApplicants();
+    renderApplicants();
   } catch (error) {
     showStatus(error.message || 'Something went wrong while submitting your application.', 'error');
   }
 });
 
 async function renderApplicants() {
-  if (!applicantList) return;
-
   try {
     const result = await request({ method: 'GET' }, '?action=applicant-list');
-    const records = Array.isArray(result.records) ? result.records : [];
+    const records = result.records || [];
 
-    if (!records.length) {
+    if (!Array.isArray(records) || records.length === 0) {
       applicantList.innerHTML = '<li><span class="empty-line">No applicants yet.</span></li>';
       return;
     }
@@ -157,7 +146,5 @@ async function renderApplicants() {
 }
 
 (async function init() {
-  if (form) {
-    await renderApplicants();
-  }
+  await renderApplicants();
 })();

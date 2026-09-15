@@ -1,15 +1,12 @@
   const CONFIG = {
-    spreadsheetId: '1utH1iEiYiGOCZjAQ4_z3Mb3KdJcSDUHDyMVMnbNbTSA',
     sheetName: 'MRF',
     sheetAliases: ['MRF Requests', 'MRF', 'Manpower Requests', 'MRF Monitor'],
     applicantSheetName: 'Applicants',
     applicantSheetAliases: ['Applicants', 'Applicant Forms', 'Applications', 'Applicant Applications'],
-    referralSheetName: 'Referrals',
     employeeFilesSheetName: '201 Files',
-    referralDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl',
-    referralDriveFolderName: 'CANDIDATE_RESUMES',
-    employeeFilesDriveFolderId: '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl',
-    employeeFilesDriveFolderName: 'SCANNED_FILES_OJT'
+    driveFolderId: '1m43NthL-cWmxjuC3iaYe9Gkxf1VHJrlq',
+    driveFolderName: 'MRF Monitor Uploads',
+    employeeFilesDriveFolderId: '1wroebNAIgVf6oMVa1EMm6gZ_-f6dCotL'
   };
 
   const HEADERS = [
@@ -33,37 +30,7 @@
   ];
   const DISPLAY_APPLICANT_HEADERS = APPLICANT_HEADERS.map(header => header.toUpperCase());
   const SHEET_FONT_FAMILY = 'Arial';
-  const SHEET_FONT_SIZE = 9;
-
-  function normalizeTextValue(value) {
-    if (value == null) return '';
-    return String(value).trim().toUpperCase();
-  }
-
-  function normalizeRecordForWrite(record) {
-    const normalized = Object.assign({}, record);
-    Object.keys(normalized).forEach((key) => {
-      if (typeof normalized[key] === 'string') {
-        normalized[key] = normalizeTextValue(normalized[key]);
-      }
-    });
-    return normalized;
-  }
-
-  function normalizeId(value) {
-    const raw = String(value == null ? '' : value).trim();
-    if (!raw) return '0000';
-    const number = Number(raw);
-    if (Number.isFinite(number)) return String(number).padStart(4, '0');
-    return raw.padStart(4, '0');
-  }
-
-  function getSpreadsheet() {
-    if (!CONFIG.spreadsheetId) {
-      throw new Error('The legacy spreadsheet ID is not configured.');
-    }
-    return SpreadsheetApp.openById(CONFIG.spreadsheetId);
-  }
+  const SHEET_FONT_SIZE = 10;
 
   function doGet(e) {
     try {
@@ -141,22 +108,20 @@
   }
 
   function getReferralFolder() {
-    if (CONFIG.referralDriveFolderId) {
-      try {
-        return DriveApp.getFolderById(CONFIG.referralDriveFolderId);
-      } catch (error) {
-        // fall through to the named folder matching the configured drive connection
-      }
+    const folderId = '1kL5CK1-ZEY51BZo6_BQjY8MSSfoEzcBl';
+    try {
+      return DriveApp.getFolderById(folderId);
+    } catch (error) {
+      const rootFolder = DriveApp.getRootFolder();
+      const existing = DriveApp.getFoldersByName('Referral Uploads');
+      if (existing.hasNext()) return existing.next();
+      return rootFolder.createFolder('Referral Uploads');
     }
-    const folderName = CONFIG.referralDriveFolderName || 'CANDIDATE_RESUMES';
-    const existing = DriveApp.getFoldersByName(folderName);
-    if (existing.hasNext()) return existing.next();
-    return DriveApp.getRootFolder().createFolder(folderName);
   }
 
   function getOrCreateReferralSheet() {
-    const spreadsheet = getSpreadsheet();
-    let sheet = spreadsheet.getSheetByName(CONFIG.referralSheetName || 'Referrals');
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = spreadsheet.getSheetByName('Referrals');
     if (!sheet) sheet = spreadsheet.insertSheet('Referrals');
     if (sheet.getLastRow() === 0) sheet.appendRow(DISPLAY_REFERRAL_HEADERS);
     sheet.getRange(1, 1, 1, REFERRAL_HEADERS.length)
@@ -183,7 +148,7 @@
   }
 
   function getOrCreateApplicantSheet() {
-    const spreadsheet = getSpreadsheet();
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = findSheetByAliases(spreadsheet, CONFIG.applicantSheetAliases);
     if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.applicantSheetName);
     if (sheet.getLastRow() === 0) sheet.appendRow(DISPLAY_APPLICANT_HEADERS);
@@ -201,7 +166,7 @@
   }
 
   function getSheet() {
-    const spreadsheet = getSpreadsheet();
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = findSheetByAliases(spreadsheet, CONFIG.sheetAliases);
     if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.sheetName);
     if (sheet.getLastRow() === 0) sheet.appendRow(DISPLAY_HEADERS);
@@ -313,7 +278,7 @@
   }
 
   function getEmployeeFilesSheet() {
-    const spreadsheet = getSpreadsheet();
+    const spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
     let sheet = spreadsheet.getSheetByName(CONFIG.employeeFilesSheetName);
     if (!sheet) sheet = spreadsheet.insertSheet(CONFIG.employeeFilesSheetName);
     if (sheet.getLastRow() === 0) sheet.appendRow(EMPLOYEE_FILE_HEADERS);
@@ -352,15 +317,9 @@
 
   function getEmployeeFilesFolder() {
     if (CONFIG.employeeFilesDriveFolderId) {
-      try {
-        return DriveApp.getFolderById(CONFIG.employeeFilesDriveFolderId);
-      } catch (error) {
-        // fall through to the named folder matching the configured drive connection
-      }
+      return DriveApp.getFolderById(CONFIG.employeeFilesDriveFolderId);
     }
-    const folderName = CONFIG.employeeFilesDriveFolderName || 'SCANNED_FILES_OJT';
-    const folders = DriveApp.getFoldersByName(folderName);
-    return folders.hasNext() ? folders.next() : DriveApp.getRootFolder().createFolder(folderName);
+    throw new Error('The 201 Files Drive folder is not configured');
   }
 
   function saveRecord(input) {
@@ -369,12 +328,11 @@
     lock.waitLock(30000);
     try {
       const sheet = getSheet();
-      const record = normalizeRecordForWrite(Object.assign({}, input));
+      const record = Object.assign({}, input);
       delete record.fileData;
       delete record.fileMimeType;
       const existingRow = record.id ? findRow(sheet, record.id) : 0;
       if (!existingRow) record.id = nextRequestId(sheet);
-      record.id = normalizeId(record.id);
 
       if (input.fileData) {
         const folder = getUploadFolder();
@@ -386,12 +344,7 @@
         record.fileUrl = file.getUrl();
       }
 
-      const values = HEADERS.map(header => {
-        const value = record[header];
-        if (value == null) return '';
-        if (header === 'id') return normalizeId(value);
-        return normalizeTextValue(value);
-      });
+      const values = HEADERS.map(header => record[header] == null ? '' : record[header]);
       if (existingRow) sheet.getRange(existingRow, 1, 1, HEADERS.length).setValues([values]);
       else sheet.appendRow(values);
       const savedRow = existingRow || sheet.getLastRow();
@@ -406,7 +359,7 @@
   }
 
   function saveApplicant(input) {
-    const data = normalizeRecordForWrite(Object.assign({}, input || {}));
+    const data = Object.assign({}, input || {});
     const sheet = getOrCreateApplicantSheet();
     const row = [
       new Date(),
@@ -418,7 +371,7 @@
       data.source || '',
       data.linkedin || '',
       data.notes || '',
-      data.status || 'NEW'
+      data.status || 'New'
     ];
     sheet.appendRow(row);
     applySheetDefaults(sheet, APPLICANT_HEADERS.length);
@@ -479,7 +432,7 @@
   }
 
   function applyWorkbookDefaults() {
-    getSpreadsheet().getSheets().forEach(sheet => {
+    SpreadsheetApp.getActiveSpreadsheet().getSheets().forEach(sheet => {
       const range = sheet.getDataRange();
       range.setFontFamily(SHEET_FONT_FAMILY).setFontSize(SHEET_FONT_SIZE);
     });
