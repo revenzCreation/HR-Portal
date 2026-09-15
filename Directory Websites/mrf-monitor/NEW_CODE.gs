@@ -24,7 +24,30 @@ const APPLICANT_HEADERS = [
 const DISPLAY_APPLICANT_HEADERS = APPLICANT_HEADERS.map(header => header.replace(/[A-Z]/g, letter => ' ' + letter).toUpperCase());
 
 const SHEET_FONT_FAMILY = 'Arial';
-const SHEET_FONT_SIZE = 10;
+const SHEET_FONT_SIZE = 9;
+
+function normalizeTextValue(value) {
+  if (value == null) return '';
+  return String(value).trim().toUpperCase();
+}
+
+function normalizeRecordForWrite(record) {
+  const normalized = Object.assign({}, record);
+  Object.keys(normalized).forEach((key) => {
+    if (typeof normalized[key] === 'string') {
+      normalized[key] = normalizeTextValue(normalized[key]);
+    }
+  });
+  return normalized;
+}
+
+function normalizeId(value) {
+  const raw = String(value == null ? '' : value).trim();
+  if (!raw) return '0000';
+  const number = Number(raw);
+  if (Number.isFinite(number)) return String(number).padStart(4, '0');
+  return raw.padStart(4, '0');
+}
 
 function getSpreadsheet() {
   if (!CONFIG.spreadsheetId) {
@@ -131,11 +154,12 @@ function saveRecord(input) {
   lock.waitLock(30000);
   try {
     const sheet = getSheet();
-    const record = Object.assign({}, input);
+    const record = normalizeRecordForWrite(Object.assign({}, input));
     delete record.fileData;
     delete record.fileMimeType;
     const existingRow = record.id ? findRow(sheet, record.id) : 0;
     if (!existingRow) record.id = nextRequestId(sheet);
+    record.id = normalizeId(record.id);
 
     if (input.fileData) {
       const folder = getUploadFolder();
@@ -147,7 +171,12 @@ function saveRecord(input) {
       record.fileUrl = file.getUrl();
     }
 
-    const values = HEADERS.map(header => record[header] == null ? '' : record[header]);
+    const values = HEADERS.map(header => {
+      const value = record[header];
+      if (value == null) return '';
+      if (header === 'id') return normalizeId(value);
+      return normalizeTextValue(value);
+    });
     if (existingRow) sheet.getRange(existingRow, 1, 1, HEADERS.length).setValues([values]);
     else sheet.appendRow(values);
 
@@ -220,10 +249,10 @@ function getOrCreateApplicantsSheet() {
 function saveApplicant(data) {
   if (!data || typeof data !== 'object') throw new Error('Applicant data is required');
   const sheet = getOrCreateApplicantsSheet();
-  const record = Object.assign({}, data);
+  const record = normalizeRecordForWrite(Object.assign({}, data));
   const existingRow = record.id ? findApplicantRow(sheet, record.id) : 0;
-  record.id = record.id || createApplicantId();
-  record.status = record.status || 'New';
+  record.id = normalizeId(record.id || createApplicantId());
+  record.status = record.status || 'NEW';
   record.createdAt = Number(record.createdAt) || Date.now();
   record.updatedAt = Date.now();
 
@@ -238,7 +267,13 @@ function saveApplicant(data) {
     record.resumeLink = resumeLink;
   }
 
-  const values = APPLICANT_HEADERS.map(header => record[header] == null ? '' : record[header]);
+  const values = APPLICANT_HEADERS.map(header => {
+    const value = record[header];
+    if (value == null) return '';
+    if (header === 'id') return normalizeId(value);
+    if (header === 'createdAt' || header === 'updatedAt') return value;
+    return normalizeTextValue(value);
+  });
   if (existingRow) sheet.getRange(existingRow, 1, 1, APPLICANT_HEADERS.length).setValues([values]);
   else sheet.appendRow(values);
 
@@ -280,8 +315,15 @@ function findApplicantRow(sheet, id) {
 }
 
 function createApplicantId() {
-  const timestamp = Date.now();
-  return 'APP-' + String(timestamp).slice(-8);
+  const sheet = getOrCreateApplicantsSheet();
+  const ids = sheet.getLastRow() < 2 ? [] : sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
+  const highest = ids.reduce((max, row) => {
+    const value = String(row[0]).trim();
+    const number = /^\d{1,4}$/.test(value) ? Number(value) : 0;
+    return Math.max(max, number);
+  }, 0);
+  if (highest >= 9999) throw new Error('No four-digit applicant IDs remain');
+  return String(highest + 1).padStart(4, '0');
 }
 
 function makeApplicantFileName(id, originalName) {

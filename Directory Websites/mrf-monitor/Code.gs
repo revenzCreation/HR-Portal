@@ -30,7 +30,30 @@
   ];
   const DISPLAY_APPLICANT_HEADERS = APPLICANT_HEADERS.map(header => header.toUpperCase());
   const SHEET_FONT_FAMILY = 'Arial';
-  const SHEET_FONT_SIZE = 10;
+  const SHEET_FONT_SIZE = 9;
+
+  function normalizeTextValue(value) {
+    if (value == null) return '';
+    return String(value).trim().toUpperCase();
+  }
+
+  function normalizeRecordForWrite(record) {
+    const normalized = Object.assign({}, record);
+    Object.keys(normalized).forEach((key) => {
+      if (typeof normalized[key] === 'string') {
+        normalized[key] = normalizeTextValue(normalized[key]);
+      }
+    });
+    return normalized;
+  }
+
+  function normalizeId(value) {
+    const raw = String(value == null ? '' : value).trim();
+    if (!raw) return '0000';
+    const number = Number(raw);
+    if (Number.isFinite(number)) return String(number).padStart(4, '0');
+    return raw.padStart(4, '0');
+  }
 
   function doGet(e) {
     try {
@@ -328,11 +351,12 @@
     lock.waitLock(30000);
     try {
       const sheet = getSheet();
-      const record = Object.assign({}, input);
+      const record = normalizeRecordForWrite(Object.assign({}, input));
       delete record.fileData;
       delete record.fileMimeType;
       const existingRow = record.id ? findRow(sheet, record.id) : 0;
       if (!existingRow) record.id = nextRequestId(sheet);
+      record.id = normalizeId(record.id);
 
       if (input.fileData) {
         const folder = getUploadFolder();
@@ -344,7 +368,12 @@
         record.fileUrl = file.getUrl();
       }
 
-      const values = HEADERS.map(header => record[header] == null ? '' : record[header]);
+      const values = HEADERS.map(header => {
+        const value = record[header];
+        if (value == null) return '';
+        if (header === 'id') return normalizeId(value);
+        return normalizeTextValue(value);
+      });
       if (existingRow) sheet.getRange(existingRow, 1, 1, HEADERS.length).setValues([values]);
       else sheet.appendRow(values);
       const savedRow = existingRow || sheet.getLastRow();
@@ -359,7 +388,7 @@
   }
 
   function saveApplicant(input) {
-    const data = Object.assign({}, input || {});
+    const data = normalizeRecordForWrite(Object.assign({}, input || {}));
     const sheet = getOrCreateApplicantSheet();
     const row = [
       new Date(),
@@ -371,7 +400,7 @@
       data.source || '',
       data.linkedin || '',
       data.notes || '',
-      data.status || 'New'
+      data.status || 'NEW'
     ];
     sheet.appendRow(row);
     applySheetDefaults(sheet, APPLICANT_HEADERS.length);
