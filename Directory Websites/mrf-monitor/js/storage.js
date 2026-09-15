@@ -1,5 +1,5 @@
 function requireApiUrl() {
-  const configuredUrl = window.HR_PORTAL_SHEETS?.getApiUrl?.() || window.HR_PORTAL_API_URL || '';
+  const configuredUrl = 'https://script.google.com/macros/s/AKfycbzw10235KTU6EvGNRVtBazNQayZrBLWh5UwIWl7wsJjykh4X1dfifZcr57no_d3tN5-qw/exec';
 
   if (!configuredUrl || !/^(?:https?:\/\/|\/|\.\/|\.\.\/)/i.test(configuredUrl)) {
     throw new Error('Set a valid Sheets API URL in the shared config.');

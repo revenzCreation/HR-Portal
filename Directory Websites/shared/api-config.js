@@ -1,13 +1,13 @@
 (function () {
   const DEFAULT_SAME_ORIGIN_PATH = '/api/sheets';
   const DEFAULT_UPSTREAM_URL = 'https://script.google.com/macros/s/AKfycbzw10235KTU6EvGNRVtBazNQayZrBLWh5UwIWl7wsJjykh4X1dfifZcr57no_d3tN5-qw/exec';
-  const configuredUrl = (typeof window !== 'undefined' && (window.HR_PORTAL_API_URL || window.HR_PORTAL_SHEETS?.getApiUrl?.())) || DEFAULT_UPSTREAM_URL;
+  const configuredUrl = DEFAULT_UPSTREAM_URL;
 
   window.HR_PORTAL_API_URL = configuredUrl;
   window.HR_PORTAL_SHEETS = window.HR_PORTAL_SHEETS || {};
 
   window.HR_PORTAL_SHEETS.getApiUrl = function getApiUrl() {
-    return window.HR_PORTAL_API_URL || DEFAULT_SAME_ORIGIN_PATH;
+    return window.HR_PORTAL_API_URL || DEFAULT_UPSTREAM_URL;
   };
 
   window.HR_PORTAL_SHEETS.request = async function requestSheetsApi(options = {}) {
